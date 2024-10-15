@@ -37,7 +37,7 @@ public class Piece_Class : MonoBehaviour
     public Piece_Class(string name,int id, int piece_type)
     {
         this.obj = GameObject.Find(name).gameObject;
-        this.type = piece_type;
         this.piece_id = id;
+        this.type = piece_type;
     }
 }

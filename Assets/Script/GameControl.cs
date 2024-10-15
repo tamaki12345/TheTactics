@@ -2,6 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Net.WebSockets;
+using System.Xml.Schema;
+
+
 //using System.Numerics;
 using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
@@ -16,11 +20,9 @@ public class GameControl : MonoBehaviour
         {11,3},{11,4},{11,5},{11,6},{11,7},{11,8},{11,9},{11,10},{11,11},  {7,5}, {8, 5}, {9, 5}, {10,5}, {12, 7}
     };
     private int[,] piece_point = new int[9, 3] {
-        {4, 0, 5}, {7, 0, 6}, {10, 0, 8}, {3, 1, 1}, {5, 1, 7}, {9, 1, 8}, {11, 1, 2}, {6, 2, 3}, {8, 2, 4}
+        {4, 0, 5}, {7, 0, 9}, {10, 0, 6}, {3, 1, 1}, {5, 1, 7}, {9, 1, 8}, {11, 1, 2}, {6, 2, 3}, {8, 2, 4}
     };
 
-    private int board_size = 15;
-    // private List< List<int> > board = new List< List<int> >();
 
     private (int, int) clickPoint = (0, 0);
     public Camera mainCamera;
@@ -29,6 +31,8 @@ public class GameControl : MonoBehaviour
     private (int, int) shownPoint = (0, 0);
     private List< (int, int) > installables = new List< (int, int) >();
     private (int, int) tmp = (0, 0);
+    private bool moving = false;
+    private List< GameObject > temporaryObjects = new List< GameObject >();
 
     void Start()
     {
@@ -38,19 +42,18 @@ public class GameControl : MonoBehaviour
 
     void Update()
     {
-        if( GetClickPoint() )
+        if( GetClickPoint() && !moving )
         {
             if( installables.Contains( ( clickPoint.Item1 , clickPoint.Item2 ) ) )
             {
-                Debug.Log( ( (int)clickPoint.Item1, (int)clickPoint.Item2 ) );
-                Debug.Log("<color=red>installables clicked</color>");
-                board[ (int)clickPoint.Item1, (int)clickPoint.Item2 ] = board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ];
-                board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ] = 0;
+                moving = true;
+
+                MovePiece(shownPoint, clickPoint);
             }
             else if( SelectPiece() > 0 && !shown )
             {
-                Debug.Log( ( (int)clickPoint.Item1, (int)clickPoint.Item2 ) );
                 shown = true;
+                DestroyTemporaries();
                 selected = SelectPiece();
                 shownPoint = clickPoint;
 
@@ -58,11 +61,17 @@ public class GameControl : MonoBehaviour
 
                 int id = selected_piece.Id();
 
+                installables = new List< (int, int) >();
                 installables = GetInstallableTiles(id);
 
-                for( int i = 0; i < installables.Count; i++) Debug.Log( "<color=green>new installables" + ( installables[i].Item1, installables[i].Item2 ) + "</color>" );
-
                 ShowInstallable(installables);
+            }
+            else if( SelectPiece() < 1 )
+            {
+                moving = false;
+                shown = false;
+                installables = new List< (int, int) >();
+                DestroyTemporaries();
             }
         }
     }
@@ -146,56 +155,56 @@ public class GameControl : MonoBehaviour
         {
             if( x + 1 < 15 )
             {
-                if( board[ x + 1 , y ] != -1 )
+                if( board[ x + 1 , y ] == 0 )
                 {
                     ret.Add( ( x + 1 , y ) );
                 }
             }
             if( x + 1 < 15 && y + 1 < 15 )
             {
-                if( board[ x + 1 , y + 1 ] != -1 )
+                if( board[ x + 1 , y + 1 ] == 0 )
                 {
                     ret.Add( ( x + 1 , y + 1 ) );
                 }
             }
             if( y + 1 < 15)
             {
-                if( board[ x , y + 1 ] != -1 )
+                if( board[ x , y + 1 ] == 0 )
                 {
                     ret.Add( ( x , y + 1 ) );
                 }
             }
             if( x - 1 >= 0 && y + 1 < 15 )
             {
-                if( board[ x - 1 , y + 1 ] != -1 )
+                if( board[ x - 1 , y + 1 ] == 0 )
                 {
                     ret.Add( ( x - 1 , y + 1 ) );
                 }
             }
             if( x - 1 >= 0 )
             {
-                if( board[ x - 1 , y ] != -1 )
+                if( board[ x - 1 , y ] == 0 )
                 {
                     ret.Add( ( x - 1 , y ) );
                 }
             }
             if( x - 1 >= 0 && y - 1 >= 0 )
             {
-                if( board[ x - 1 , y - 1 ] != -1 )
+                if( board[ x - 1 , y - 1 ] == 0 )
                 {
                     ret.Add( ( x - 1 , y - 1 ) );
                 }
             }
             if( y - 1 >= 0 )
             {
-                if( board[ x , y - 1 ] != -1 )
+                if( board[ x , y - 1 ] == 0 )
                 {
                     ret.Add( ( x , y - 1 ) );
                 }
             }
             if( x + 1 < 15 && y - 1 >= 0 )
             {
-                if( board[ x + 1 , y - 1 ] != -1 )
+                if( board[ x + 1 , y - 1 ] == 0 )
                 {
                     ret.Add( ( x + 1 , y - 1 ) );
                 }
@@ -208,44 +217,44 @@ public class GameControl : MonoBehaviour
         {
             if( x + 2 < 15 )
             {
-                if( y + 1 < 15 )
+                if( y + 1 < 15 && board[ x + 2 , y + 1 ] == 0 )
                 {
                     ret.Add( ( x + 2 , y + 1 ) );
                 }
-                if( y - 1 >= 0 )
+                if( y - 1 >= 0 && board[ x + 2 , y - 1 ] == 0 )
                 {
                     ret.Add( ( x + 2 , y - 1 ) );
                 }
             }
             if( y + 2 < 15 )
             {
-                if( x + 1 < 15 )
+                if( x + 1 < 15 && board[ x + 1 , y + 2 ] == 0 )
                 {
                     ret.Add( ( x + 1 , y + 2 ) );
                 }
-                if( x - 1 >= 0 )
+                if( x - 1 >= 0 && board[ x - 1 , y + 2 ] == 0 )
                 {
                     ret.Add( ( x - 1 , y + 2 ) );
                 }
             }
             if( x - 2 >= 0 )
             {
-                if( y + 1 < 15 )
+                if( y + 1 < 15 && board[ x - 2 , y + 1 ] == 0 )
                 {
                     ret.Add( ( x - 2 , y + 1 ) );
                 }
-                if( y - 1 >= 0 )
+                if( y - 1 >= 0 && board [ x - 2 , y - 1 ] == 0 )
                 {
                     ret.Add( ( x - 2 , y - 1 ) );
                 }
             }
             if( y - 2 >= 0 )
             {
-                if( x + 1 < 15 )
+                if( x + 1 < 15 && board[ x + 1 , y - 2 ] == 0 )
                 {
                     ret.Add( ( x + 1 , y - 2 ) );
                 }
-                if( x - 1 >= 0 )
+                if( x - 1 >= 0 && board[ x - 1 , y - 2 ] == 0 )
                 {
                     ret.Add( ( x - 1 , y - 2 ) );
                 }
@@ -263,7 +272,7 @@ public class GameControl : MonoBehaviour
             {
                 if( x + i < 15 )
                 {
-                    if( board[ x + i, y ] > -1)
+                    if( board[ x + i, y ] == 0)
                     {
                         ret.Add( ( x + i, y ) );
                         i++;
@@ -285,7 +294,7 @@ public class GameControl : MonoBehaviour
             {
                 if( x + i < 15 && y + j < 15 )
                 {
-                    if( board[ x + i, y + j ] > -1)
+                    if( board[ x + i, y + j ] == 0)
                     {
                         ret.Add( ( x + i, y + j ) );
                         i++;
@@ -307,7 +316,7 @@ public class GameControl : MonoBehaviour
             {
                 if( y + j < 15 )
                 {
-                    if( board[ x , y + j ] > -1)
+                    if( board[ x , y + j ] == 0)
                     {
                         ret.Add( ( x , y + j ) );
                         j++;
@@ -329,7 +338,7 @@ public class GameControl : MonoBehaviour
             {
                 if( x - i >= 0 && y + j < 15 )
                 {
-                    if( board[ x - i, y + j ] > -1)
+                    if( board[ x - i, y + j ]  == 0)
                     {
                         ret.Add( ( x - i, y + j ) );
                         i++;
@@ -351,7 +360,7 @@ public class GameControl : MonoBehaviour
             {
                 if( x - i >= 0 )
                 {
-                    if( board[ x - i, y ] > -1)
+                    if( board[ x - i, y ] == 0 )
                     {
                         ret.Add( ( x - i, y ) );
                         i++;
@@ -373,7 +382,7 @@ public class GameControl : MonoBehaviour
             {
                 if( x - i >= 0 && y - j >= 0 )
                 {
-                    if( board[ x - i, y - j ] > -1)
+                    if( board[ x - i, y - j ] == 0 )
                     {
                         ret.Add( ( x - i, y - j ) );
                         i++;
@@ -395,7 +404,7 @@ public class GameControl : MonoBehaviour
             {
                 if( y - j >= 0 )
                 {
-                    if( board[ x , y - j ] > -1)
+                    if( board[ x , y - j ] == 0 )
                     {
                         ret.Add( ( x , y - j ) );
                         j++;
@@ -417,7 +426,7 @@ public class GameControl : MonoBehaviour
             {
                 if( x + i < 15 && y - j >= 0 )
                 {
-                    if( board[ x + i, y - j ] > -1)
+                    if( board[ x + i, y - j ] == 0 )
                     {
                         ret.Add( ( x + i, y - j ) );
                         i++;
@@ -449,10 +458,64 @@ public class GameControl : MonoBehaviour
         for(int i = 0; i < points.Count; i++)
         {
             GameObject instance = (GameObject)Instantiate(installable);
+            temporaryObjects.Add(instance);
             Vector3 position = instance.transform.position;
             position.x = ( (float)points[i].Item1 - 7f ) * 2f;
             position.z = ( (float)points[i].Item2 - 7f ) * 2f;
             instance.transform.position = position;
+        }
+    }
+
+    void MovePiece( (int, int) original, (int, int) destination )
+    {
+        board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ];
+        board[ (int)original.Item1, (int)original.Item2 ] = 0;
+
+        Vector3 destination_position = new Vector3();
+
+        GameObject obj = pieces[ selected - 1 ].Object();
+
+        destination_position = obj.transform.position;
+        float downDestination = destination_position.y;
+
+        destination_position.x = ( (float)clickPoint.Item1 - 7f ) * 2f;
+        destination_position.y = 5f;
+        destination_position.z = ( (float)clickPoint.Item2 - 7f ) * 2f;
+
+        obj.transform.position = destination_position;
+
+        StartCoroutine( DownObject(obj, downDestination) );
+
+        DestroyTemporaries();
+    }
+
+    IEnumerator DownObject(GameObject obj, float downDestination)
+    {
+        yield return new WaitForSeconds(0.001f);
+        var tmp = obj.transform.position;
+        tmp.y -= 0.1f;
+        obj.transform.position = tmp;
+        if( tmp.y > downDestination )
+        {
+            StartCoroutine(DownObject(obj, downDestination));
+        }
+        else
+        {
+            moving = false;
+            shown = false;
+            installables = new List< (int, int) >();
+        }
+    }
+
+    void DestroyTemporaries()
+    {
+        for(int i = 0; i < temporaryObjects.Count; i++)
+        {
+            Destroy(temporaryObjects[i]);
+        }
+        for(int i = 0; i < temporaryObjects.Count; i++)
+        {
+            temporaryObjects.RemoveAt(i);
         }
     }
 }
