@@ -22,15 +22,17 @@ public class GameControl : MonoBehaviour
     private int board_size = 15;
     // private List< List<int> > board = new List< List<int> >();
 
-    private Vector2 clickPoint = new Vector2();
+    private (int, int) clickPoint = (0, 0);
     public Camera mainCamera;
     private int selected;
     private bool shown = false;
-    private Vector2 shownPoint = new Vector2();
-    private List< List<int> > installables = new List<List<int>>();
+    private (int, int) shownPoint = (0, 0);
+    private List< (int, int) > installables = new List< (int, int) >();
+    private (int, int) tmp = (0, 0);
 
     void Start()
     {
+        Application.targetFrameRate = 60; 
         InitializeBoard();
     }
 
@@ -38,15 +40,18 @@ public class GameControl : MonoBehaviour
     {
         if( GetClickPoint() )
         {
-            if( installables.Contains( new List<int>(){ (int)clickPoint.x, (int)clickPoint.y}) )
+            if( installables.Contains( ( clickPoint.Item1 , clickPoint.Item2 ) ) )
             {
-                board[ (int)clickPoint.x, (int)clickPoint.y ] = board[ (int)shownPoint.x, (int)shownPoint.y ];
-                board[ (int)shownPoint.x, (int)shownPoint.y ] = 0;
+                Debug.Log( ( (int)clickPoint.Item1, (int)clickPoint.Item2 ) );
+                Debug.Log("<color=red>installables clicked</color>");
+                board[ (int)clickPoint.Item1, (int)clickPoint.Item2 ] = board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ];
+                board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ] = 0;
             }
             else if( SelectPiece() > 0 && !shown )
             {
-                selected = SelectPiece();
+                Debug.Log( ( (int)clickPoint.Item1, (int)clickPoint.Item2 ) );
                 shown = true;
+                selected = SelectPiece();
                 shownPoint = clickPoint;
 
                 Piece_Class selected_piece = pieces[ selected - 1 ];
@@ -54,6 +59,8 @@ public class GameControl : MonoBehaviour
                 int id = selected_piece.Id();
 
                 installables = GetInstallableTiles(id);
+
+                for( int i = 0; i < installables.Count; i++) Debug.Log( "<color=green>new installables" + ( installables[i].Item1, installables[i].Item2 ) + "</color>" );
 
                 ShowInstallable(installables);
             }
@@ -103,8 +110,8 @@ public class GameControl : MonoBehaviour
             var ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit = new RaycastHit();
             if (Physics.Raycast(ray.origin, ray.direction, out hit, Mathf.Infinity)) {
-                clickPoint.x = (int)Math.Round(hit.point.x / 2, MidpointRounding.ToEven) + 7;
-                clickPoint.y = (int)Math.Round( (hit.point.z + 0.25f) / 2, MidpointRounding.ToEven ) + 7;
+                clickPoint.Item1 = (int)Math.Round(hit.point.x / 2, MidpointRounding.ToEven) + 7;
+                clickPoint.Item2 = (int)Math.Round( (hit.point.z + 0.25f) / 2, MidpointRounding.ToEven ) + 7;
 
                 return true;
             }
@@ -116,9 +123,9 @@ public class GameControl : MonoBehaviour
     int SelectPiece()
     {
         //クリック位置に駒があるか?
-        if( board[ (int)clickPoint.x ,  (int)clickPoint.y ] > 0 )
+        if( board[ (int)clickPoint.Item1 ,  (int)clickPoint.Item2 ] > 0 )
         {
-            return board[ (int)clickPoint.x ,  (int)clickPoint.y ];
+            return board[ (int)clickPoint.Item1 ,  (int)clickPoint.Item2 ];
         }
         else
         {
@@ -127,13 +134,13 @@ public class GameControl : MonoBehaviour
     }
 
     //駒の移動先をreturn
-    List< List<int> > GetInstallableTiles(int piece_id)
+    List< (int, int) > GetInstallableTiles(int piece_id)
     {
-        int x = (int)clickPoint.x;
-        int y = (int)clickPoint.y;
+        int x = (int)clickPoint.Item1;
+        int y = (int)clickPoint.Item2;
         int type = pieces[ piece_id - 1 ].Type();
 
-        List< List<int> > ret = new List< List<int> >();
+        List< (int, int) > ret = new List< (int, int) >();
 
         if( type == 1 || type == 4 )
         {
@@ -141,56 +148,56 @@ public class GameControl : MonoBehaviour
             {
                 if( board[ x + 1 , y ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x + 1 , y });
+                    ret.Add( ( x + 1 , y ) );
                 }
             }
             if( x + 1 < 15 && y + 1 < 15 )
             {
                 if( board[ x + 1 , y + 1 ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x + 1 , y + 1 });
+                    ret.Add( ( x + 1 , y + 1 ) );
                 }
             }
             if( y + 1 < 15)
             {
                 if( board[ x , y + 1 ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x , y + 1 });
+                    ret.Add( ( x , y + 1 ) );
                 }
             }
             if( x - 1 >= 0 && y + 1 < 15 )
             {
                 if( board[ x - 1 , y + 1 ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x - 1 , y + 1 });
+                    ret.Add( ( x - 1 , y + 1 ) );
                 }
             }
             if( x - 1 >= 0 )
             {
                 if( board[ x - 1 , y ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x - 1 , y });
+                    ret.Add( ( x - 1 , y ) );
                 }
             }
             if( x - 1 >= 0 && y - 1 >= 0 )
             {
                 if( board[ x - 1 , y - 1 ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x - 1 , y - 1 });
+                    ret.Add( ( x - 1 , y - 1 ) );
                 }
             }
             if( y - 1 >= 0 )
             {
                 if( board[ x , y - 1 ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x , y - 1 });
+                    ret.Add( ( x , y - 1 ) );
                 }
             }
             if( x + 1 < 15 && y - 1 >= 0 )
             {
                 if( board[ x + 1 , y - 1 ] != -1 )
                 {
-                    ret.Add(new List<int>(){ x + 1 , y - 1 });
+                    ret.Add( ( x + 1 , y - 1 ) );
                 }
             }
 
@@ -203,44 +210,44 @@ public class GameControl : MonoBehaviour
             {
                 if( y + 1 < 15 )
                 {
-                    ret.Add(new List<int>(){ x + 2 , y + 1 });
+                    ret.Add( ( x + 2 , y + 1 ) );
                 }
                 if( y - 1 >= 0 )
                 {
-                    ret.Add(new List<int>(){ x + 2 , y - 1 });
+                    ret.Add( ( x + 2 , y - 1 ) );
                 }
             }
             if( y + 2 < 15 )
             {
                 if( x + 1 < 15 )
                 {
-                    ret.Add(new List<int>(){ x + 1 , y + 2 });
+                    ret.Add( ( x + 1 , y + 2 ) );
                 }
                 if( x - 1 >= 0 )
                 {
-                    ret.Add(new List<int>(){ x - 1 , y + 2 });
+                    ret.Add( ( x - 1 , y + 2 ) );
                 }
             }
             if( x - 2 >= 0 )
             {
                 if( y + 1 < 15 )
                 {
-                    ret.Add(new List<int>(){ x - 2 , y + 1 });
+                    ret.Add( ( x - 2 , y + 1 ) );
                 }
                 if( y - 1 >= 0 )
                 {
-                    ret.Add(new List<int>(){ x - 2 , y - 1 });
+                    ret.Add( ( x - 2 , y - 1 ) );
                 }
             }
             if( y - 2 >= 0 )
             {
                 if( x + 1 < 15 )
                 {
-                    ret.Add(new List<int>(){ x + 1 , y - 2 });
+                    ret.Add( ( x + 1 , y - 2 ) );
                 }
                 if( x - 1 >= 0 )
                 {
-                    ret.Add(new List<int>(){ x - 1 , y - 2 });
+                    ret.Add( ( x - 1 , y - 2 ) );
                 }
             }
 
@@ -258,7 +265,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x + i, y ] > -1)
                     {
-                        ret.Add(new List<int>(){ x + i, y });
+                        ret.Add( ( x + i, y ) );
                         i++;
                     }
                     else
@@ -280,7 +287,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x + i, y + j ] > -1)
                     {
-                        ret.Add(new List<int>(){ x + i, y + j });
+                        ret.Add( ( x + i, y + j ) );
                         i++;
                         j++;
                     }
@@ -302,7 +309,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x , y + j ] > -1)
                     {
-                        ret.Add(new List<int>(){ x , y + j });
+                        ret.Add( ( x , y + j ) );
                         j++;
                     }
                     else
@@ -324,7 +331,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x - i, y + j ] > -1)
                     {
-                        ret.Add(new List<int>(){ x - i, y + j });
+                        ret.Add( ( x - i, y + j ) );
                         i++;
                         j++;
                     }
@@ -346,7 +353,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x - i, y ] > -1)
                     {
-                        ret.Add(new List<int>(){ x - i, y });
+                        ret.Add( ( x - i, y ) );
                         i++;
                     }
                     else
@@ -368,7 +375,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x - i, y - j ] > -1)
                     {
-                        ret.Add(new List<int>(){ x - i, y - j });
+                        ret.Add( ( x - i, y - j ) );
                         i++;
                         j++;
                     }
@@ -390,7 +397,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x , y - j ] > -1)
                     {
-                        ret.Add(new List<int>(){ x , y - j });
+                        ret.Add( ( x , y - j ) );
                         j++;
                     }
                     else
@@ -412,7 +419,7 @@ public class GameControl : MonoBehaviour
                 {
                     if( board[ x + i, y - j ] > -1)
                     {
-                        ret.Add(new List<int>(){ x + i, y - j });
+                        ret.Add( ( x + i, y - j ) );
                         i++;
                         j++;
                     }
@@ -435,7 +442,7 @@ public class GameControl : MonoBehaviour
         }
     }
 
-    void ShowInstallable(List< List<int> > points)
+    void ShowInstallable(List< (int, int) > points)
     {
         GameObject installable = (GameObject)Resources.Load("installable");
 
@@ -443,8 +450,8 @@ public class GameControl : MonoBehaviour
         {
             GameObject instance = (GameObject)Instantiate(installable);
             Vector3 position = instance.transform.position;
-            position.x = ( (float)points[i][0] - 7f ) * 2f;
-            position.z = ( (float)points[i][1] - 7f ) * 2f;
+            position.x = ( (float)points[i].Item1 - 7f ) * 2f;
+            position.z = ( (float)points[i].Item2 - 7f ) * 2f;
             instance.transform.position = position;
         }
     }
