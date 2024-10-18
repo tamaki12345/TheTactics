@@ -1,15 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Net.WebSockets;
-using System.Xml.Schema;
-
-
-//using System.Numerics;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using Photon.Pun;
 
 public class GameControl : MonoBehaviour
 {
@@ -33,9 +26,12 @@ public class GameControl : MonoBehaviour
     private (int, int) tmp = (0, 0);
     private bool moving = false;
     private List< GameObject > temporaryObjects = new List< GameObject >();
+    
+    PhotonView view;
 
     void Start()
     {
+        view = PhotonView.Get(this);
         Application.targetFrameRate = 60; 
         InitializeBoard();
     }
@@ -518,4 +514,31 @@ public class GameControl : MonoBehaviour
             temporaryObjects.RemoveAt(i);
         }
     }
+
+    [PunRPC]
+    void SendAction( (int, int) ex_position, (int, int) new_position, int id)
+    {
+        view.RPC( "GetAction" , RpcTarget.Others , ex_position, new_position, id );
+    }
+
+    void GetAction( (int, int) ex_position, (int, int) new_position, int id )
+    {
+        if( board[new_position.Item1, new_position.Item2] > 0 )
+        {
+            GotPiece(new_position.Item1, new_position.Item2);
+        }
+        UpdateBoard();
+        StartWaiting();
+    }
+
+    void GotPiece(int posX, int posY)
+    {
+        int piece = board[ posX, posY ];
+    }
+
+    void UpdateBoard()
+    {}
+
+    void StartWaiting()
+    {}
 }
