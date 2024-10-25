@@ -1,34 +1,60 @@
-using System;
+    using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
+using Unity.VisualScripting;
 
 public class GameControl : MonoBehaviour
 {
+    //プレイヤーの駒
     private Piece_Class[] pieces = new Piece_Class[9];
+    
+    //相手の駒
+    private Piece_Class[] enemy_pieces = new Piece_Class[9];
+    
+    //盤面変数, player:1~9, enemy:11~19, wall:-1
     private int[,] board = new int[15, 15];
+
+    //wall位置
     private int[,] walls = new int[28, 2] {
         {3,3}, {3,4}, {3,5}, {3,6}, {3,7}, {3,8}, {3,9}, {3,10}, {3,11},  {2,7},  {4,9}, {5,9}, {6,9}, {7,9},
         {11,3},{11,4},{11,5},{11,6},{11,7},{11,8},{11,9},{11,10},{11,11},  {7,5}, {8, 5}, {9, 5}, {10,5}, {12, 7}
     };
+
+    //駒初期位置
     private int[,] piece_point = new int[9, 3] {
         {4, 0, 5}, {7, 0, 9}, {10, 0, 6}, {3, 1, 1}, {5, 1, 7}, {9, 1, 8}, {11, 1, 2}, {6, 2, 3}, {8, 2, 4}
     };
 
-
-    private (int, int) clickPoint = (0, 0);
+    //mainCamera
     public Camera mainCamera;
+
+    //被選択駒id
     private int selected;
+
+    //設置可能位置表示中か否か
     private bool shown = false;
+
+    //表示中の駒位置
     private (int, int) shownPoint = (0, 0);
+
+    //設置可能位置List
     private List< (int, int) > installables = new List< (int, int) >();
-    private (int, int) tmp = (0, 0);
+
+    //移動アニメーション中か
     private bool moving = false;
+
+    //ターン中か
+    private bool yourTurn = false;
+
+    //設置可能位置 表示Object List
     private List< GameObject > temporaryObjects = new List< GameObject >();
     
+    //通信用PhotonView
     PhotonView view;
 
+    //Start時実行
     void Start()
     {
         view = PhotonView.Get(this);
@@ -36,6 +62,9 @@ public class GameControl : MonoBehaviour
         InitializeBoard();
     }
 
+    //クリック位置変数
+    private (int, int) clickPoint = (0, 0);
+    //毎フレーム実行
     void Update()
     {
         if( GetClickPoint() && !moving )
@@ -75,16 +104,6 @@ public class GameControl : MonoBehaviour
     //boardを初期化
     void InitializeBoard()
     {  
-        //駒の初期位置
-        for( int i = 0; i < 9; i++ )
-        {
-            int x = piece_point[i,0];
-            int y = piece_point[i,1];
-            int type = piece_point[i,2];
-
-            board[x,y] = type;
-        }
-
         //壁の設置
         for( int i = 0; i < 28; i++ )
         {
@@ -105,6 +124,33 @@ public class GameControl : MonoBehaviour
             pieces[6] = new Piece_Class("tank", 7, 3);
             pieces[7] = new Piece_Class("tank (1)", 8, 3);
             pieces[8] = new Piece_Class("target", 9, 4);
+        }
+
+        //敵駒の情報の整理
+        {
+            enemy_pieces[0] = new Piece_Class("flanker", 1, 1);
+            enemy_pieces[1] = new Piece_Class("flanker (1)", 2, 1);
+            enemy_pieces[2] = new Piece_Class("flanker (2)", 3, 1);
+            enemy_pieces[3] = new Piece_Class("flanker (3)", 4, 1);
+            enemy_pieces[4] = new Piece_Class("hunter", 5, 2);
+            enemy_pieces[5] = new Piece_Class("hunter (1)", 6, 2);
+            enemy_pieces[6] = new Piece_Class("tank", 7, 3);
+            enemy_pieces[7] = new Piece_Class("tank (1)", 8, 3);
+            enemy_pieces[8] = new Piece_Class("target", 9, 4);
+        }
+
+        //駒の初期位置
+        for( int i = 0; i < 9; i++ )
+        {
+            int x = piece_point[i,0];
+            int y = piece_point[i,1];
+            int id = piece_point[i,2];
+
+            board[x,y] = id;
+            board[14 - x,14 - y] = 10 + id;
+
+            pieces[i].SetPosition(x, y);
+            enemy_pieces[i].SetPosition(14 - x, 14 - y);
         }
     }
 
@@ -447,6 +493,7 @@ public class GameControl : MonoBehaviour
         }
     }
 
+    //設置可能位置を表示
     void ShowInstallable(List< (int, int) > points)
     {
         GameObject installable = (GameObject)Resources.Load("installable");
@@ -462,6 +509,7 @@ public class GameControl : MonoBehaviour
         }
     }
 
+    //駒を移動
     void MovePiece( (int, int) original, (int, int) destination )
     {
         board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ];
@@ -483,8 +531,11 @@ public class GameControl : MonoBehaviour
         StartCoroutine( DownObject(obj, downDestination) );
 
         DestroyTemporaries();
+
+        StartWaiting();
     }
 
+    //駒移動アニメーション
     IEnumerator DownObject(GameObject obj, float downDestination)
     {
         yield return new WaitForSeconds(0.001f);
@@ -503,6 +554,7 @@ public class GameControl : MonoBehaviour
         }
     }
 
+    //設置可能位置 表示Objectを破壊
     void DestroyTemporaries()
     {
         for(int i = 0; i < temporaryObjects.Count; i++)
@@ -515,30 +567,161 @@ public class GameControl : MonoBehaviour
         }
     }
 
+    //選択した位置を送信
     [PunRPC]
     void SendAction( (int, int) ex_position, (int, int) new_position, int id)
     {
         view.RPC( "GetAction" , RpcTarget.Others , ex_position, new_position, id );
     }
 
+    //選択した位置を受信
     void GetAction( (int, int) ex_position, (int, int) new_position, int id )
     {
-        if( board[new_position.Item1, new_position.Item2] > 0 )
+        var modify_ex_pos = ( 14 - ex_position.Item1, 14 - ex_position.Item2 );
+        var modify_new_pos = ( 14 - new_position.Item1, 14 - new_position.Item2 );
+
+        if( board[ modify_new_pos.Item1, modify_new_pos.Item2 ] > 0 )
         {
-            GotPiece(new_position.Item1, new_position.Item2);
+            GotPiece( modify_new_pos , modify_ex_pos );
         }
-        UpdateBoard();
+        UpdateBoard( modify_new_pos );
         StartWaiting();
+
+        yourTurn = true;
     }
 
-    void GotPiece(int posX, int posY)
+    //駒をとられた
+    IEnumerator GotPiece( (int, int) ex_position, (int, int) new_position  )
     {
-        int piece = board[ posX, posY ];
+        int got_piece = board[ new_position.Item1, new_position.Item2 ];
+        board[ new_position.Item1, new_position.Item2 ] = board[ ex_position.Item1, ex_position.Item2 ];
+
+        yield return new WaitForSeconds(0.01f);
+        Destroy( pieces[ got_piece ].Object() );
     }
 
-    void UpdateBoard()
-    {}
+    //盤面を更新
+    void UpdateBoard( (int, int) new_position )
+    {
+        var X = (float)(new_position.Item1 - 7) * 2f;
+        var Y = (float)(new_position.Item2 - 7) * 2f;
 
+        //自分のターンだったら
+        if( yourTurn )
+        {
+            //ある敵の駒に対して
+            for( int k = 0; k < 9; k++ )
+            {
+                int i = enemy_pieces[k].Position().Item1;
+                int j = enemy_pieces[k].Position().Item2;
+                var I = (float)( i - 7 ) * 2f;
+                var J = (float)( j - 7 ) * 2f;
+
+                //その駒がとられてなくて，見えていない場合に見えるかチェック
+                if( enemy_pieces[k].Enable() && !enemy_pieces[k].Visible() )
+                {
+                    RaycastHit hit = new RaycastHit();
+
+                    Vector3 origin = new Vector3( X, 1.2f, Y );
+                    Vector3 destination = new Vector3( I, 1.2f, J );
+
+                    //間に壁がなければ
+                    if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                    {
+                        enemy_pieces[k].SwapVisible();
+                    }
+                }
+
+                //その駒がとられてなくて，見えていたらまだ見えるかチェック
+                else if( enemy_pieces[k].Enable() && enemy_pieces[k].Visible() )
+                {
+                    bool visible = false;
+                    //ある自分の駒に対して
+                    for( int l = 0; l < 9; l++ )
+                    {
+                        var S = (float)(pieces[l].Position().Item1 - 7) * 2f;
+                        var T = (float)(pieces[l].Position().Item2 - 7) * 2f;
+                        RaycastHit hit = new RaycastHit();
+
+                        Vector3 origin = new Vector3( S, 1.2f, T );
+                        Vector3 destination = new Vector3( I, 1.2f, J );
+
+                        //間に壁がなければ
+                        if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                        {
+                            visible = true;
+                        }
+                    }
+
+                    //すべての間に壁があったら
+                    if(!visible)
+                    {
+                        enemy_pieces[k].SwapVisible();
+                    }
+                }
+            }
+        }
+
+        //相手のターンだったら
+        else 
+        {
+            //ある自分の駒に対して
+            for( int k = 0; k < 9; k++ )
+            {
+                int i = pieces[k].Position().Item1;
+                int j = pieces[k].Position().Item2;
+                var I = (float)( i - 7 ) * 2f;
+                var J = (float)( j - 7 ) * 2f;
+
+                //その駒がとられてなくて，見えていない場合にチェック
+                if( pieces[k].Enable() && !pieces[k].Visible() )
+                {
+                    RaycastHit hit = new RaycastHit();
+
+                    Vector3 origin = new Vector3( X, 1.2f, Y );
+                    Vector3 destination = new Vector3( I, 1.2f, J );
+
+                    //間に壁がなければ
+                    if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                    {
+                        pieces[k].SwapVisible();
+                    }
+                }
+
+                //その駒がとられてなくて，見えていたらまだ見えるかチェック
+                else if( pieces[k].Enable() && pieces[k].Visible() )
+                {
+                    bool visible = false;
+                    //ある敵の駒に対して
+                    for( int l = 0; l < 9; l++ )
+                    {
+                        var S = (float)(enemy_pieces[l].Position().Item1 - 7) * 2f;
+                        var T = (float)(enemy_pieces[l].Position().Item2 - 7) * 2f;
+                        RaycastHit hit = new RaycastHit();
+
+                        Vector3 origin = new Vector3( S, 1.2f, T );
+                        Vector3 destination = new Vector3( I, 1.2f, J );
+
+                        //間に壁がなければ
+                        if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                        {
+                            visible = true;
+                        }
+                    }
+
+                    //すべての間に壁があったら
+                    if(!visible)
+                    {
+                        pieces[k].SwapVisible();
+                    }
+                }
+            }
+        }
+    }
+
+    //敵ターンを待機
     void StartWaiting()
-    {}
+    {
+        yourTurn = false;
+    }
 }
