@@ -26,7 +26,7 @@ public class Piece_Class : MonoBehaviour
     //駒が有効か（とられていないか）
     private bool enable = true;
     //駒がみられているか
-    private bool visible = false;
+    private bool visible = true;
 
     public int Type()
     {
@@ -80,6 +80,7 @@ public class Piece_Class : MonoBehaviour
         {
             enable = true;
         }
+        obj.SetActive(enable);
     }
 
     public void SwapVisible()
@@ -92,5 +93,6 @@ public class Piece_Class : MonoBehaviour
         {
             visible = true;
         }
+        obj.GetComponent<MeshRenderer>().enabled = visible;
     }
 }

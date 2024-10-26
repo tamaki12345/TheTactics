@@ -1,11 +1,15 @@
-    using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
 using Unity.VisualScripting;
+using System.Data.Common;
+using UnityEngine.SceneManagement;
+using TMPro;
 
-public class GameControl : MonoBehaviour
+public class GameControl : MonoBehaviourPunCallbacks
 {
     //プレイヤーの駒
     private Piece_Class[] pieces = new Piece_Class[9];
@@ -29,6 +33,13 @@ public class GameControl : MonoBehaviour
 
     //mainCamera
     public Camera mainCamera;
+
+    //待機画面
+    private GameObject waiting_overlay;
+    //終了画面
+    private GameObject end_overlay;
+    //終了画面
+    private GameObject turn_overlay;
 
     //被選択駒id
     private int selected;
@@ -57,9 +68,23 @@ public class GameControl : MonoBehaviour
     //Start時実行
     void Start()
     {
+        waiting_overlay = GameObject.Find("Waiting_Overlay").gameObject;
+        waiting_overlay.SetActive(true);
+
+        end_overlay = GameObject.Find("GameEndOverlay").gameObject;
+        end_overlay.SetActive(false);
+
+        turn_overlay = GameObject.Find("Turn_Overlay").gameObject;
+        turn_overlay.SetActive(false);
+
         view = PhotonView.Get(this);
+
         Application.targetFrameRate = 60; 
+
         InitializeBoard();
+
+        // PhotonServerSettingsの設定内容を使ってマスターサーバーへ接続する
+        PhotonNetwork.ConnectUsingSettings();
     }
 
     //クリック位置変数
@@ -67,13 +92,14 @@ public class GameControl : MonoBehaviour
     //毎フレーム実行
     void Update()
     {
-        if( GetClickPoint() && !moving )
+        if( GetClickPoint() && !moving && yourTurn )
         {
             if( installables.Contains( ( clickPoint.Item1 , clickPoint.Item2 ) ) )
             {
                 moving = true;
 
                 MovePiece(shownPoint, clickPoint);
+                UpdateBoard( clickPoint );
             }
             else if( SelectPiece() > 0 && !shown )
             {
@@ -128,15 +154,15 @@ public class GameControl : MonoBehaviour
 
         //敵駒の情報の整理
         {
-            enemy_pieces[0] = new Piece_Class("flanker", 1, 1);
-            enemy_pieces[1] = new Piece_Class("flanker (1)", 2, 1);
-            enemy_pieces[2] = new Piece_Class("flanker (2)", 3, 1);
-            enemy_pieces[3] = new Piece_Class("flanker (3)", 4, 1);
-            enemy_pieces[4] = new Piece_Class("hunter", 5, 2);
-            enemy_pieces[5] = new Piece_Class("hunter (1)", 6, 2);
-            enemy_pieces[6] = new Piece_Class("tank", 7, 3);
-            enemy_pieces[7] = new Piece_Class("tank (1)", 8, 3);
-            enemy_pieces[8] = new Piece_Class("target", 9, 4);
+            enemy_pieces[0] = new Piece_Class("enemy_flanker", 1, 1);
+            enemy_pieces[1] = new Piece_Class("enemy_flanker (1)", 2, 1);
+            enemy_pieces[2] = new Piece_Class("enemy_flanker (2)", 3, 1);
+            enemy_pieces[3] = new Piece_Class("enemy_flanker (3)", 4, 1);
+            enemy_pieces[4] = new Piece_Class("enemy_hunter", 5, 2);
+            enemy_pieces[5] = new Piece_Class("enemy_hunter (1)", 6, 2);
+            enemy_pieces[6] = new Piece_Class("enemy_tank", 7, 3);
+            enemy_pieces[7] = new Piece_Class("enemy_tank (1)", 8, 3);
+            enemy_pieces[8] = new Piece_Class("enemy_target", 9, 4);
         }
 
         //駒の初期位置
@@ -149,8 +175,11 @@ public class GameControl : MonoBehaviour
             board[x,y] = id;
             board[14 - x,14 - y] = 10 + id;
 
-            pieces[i].SetPosition(x, y);
-            enemy_pieces[i].SetPosition(14 - x, 14 - y);
+            pieces[id - 1].SetPosition(x, y);
+            enemy_pieces[id - 1].SetPosition(14 - x, 14 - y);
+            enemy_pieces[id - 1].SwapVisible();
+
+            UpdateBoard( pieces[id - 1].Position() ) ;
         }
     }
 
@@ -515,6 +544,17 @@ public class GameControl : MonoBehaviour
         board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ];
         board[ (int)original.Item1, (int)original.Item2 ] = 0;
 
+        if( yourTurn )
+        {
+            var id = board[ (int)destination.Item1, (int)destination.Item2 ];
+            pieces[id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+        }
+        else
+        {
+            var id = board[ (int)destination.Item1, (int)destination.Item2 ];
+            enemy_pieces[id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+        }
+
         Vector3 destination_position = new Vector3();
 
         GameObject obj = pieces[ selected - 1 ].Object();
@@ -532,7 +572,7 @@ public class GameControl : MonoBehaviour
 
         DestroyTemporaries();
 
-        StartWaiting();
+        SwapTurn();
     }
 
     //駒移動アニメーション
@@ -568,14 +608,15 @@ public class GameControl : MonoBehaviour
     }
 
     //選択した位置を送信
-    [PunRPC]
     void SendAction( (int, int) ex_position, (int, int) new_position, int id)
     {
-        view.RPC( "GetAction" , RpcTarget.Others , ex_position, new_position, id );
+        view.RPC( nameof(GetAction) , RpcTarget.Others , ex_position, new_position );
+        GetAction(ex_position, new_position);
     }
 
     //選択した位置を受信
-    void GetAction( (int, int) ex_position, (int, int) new_position, int id )
+    [PunRPC]
+    void GetAction( (int, int) ex_position, (int, int) new_position )
     {
         var modify_ex_pos = ( 14 - ex_position.Item1, 14 - ex_position.Item2 );
         var modify_new_pos = ( 14 - new_position.Item1, 14 - new_position.Item2 );
@@ -585,19 +626,39 @@ public class GameControl : MonoBehaviour
             GotPiece( modify_new_pos , modify_ex_pos );
         }
         UpdateBoard( modify_new_pos );
-        StartWaiting();
 
-        yourTurn = true;
+        SwapTurn();
     }
 
-    //駒をとられた
+    //駒をとった・とられた
     IEnumerator GotPiece( (int, int) ex_position, (int, int) new_position  )
     {
         int got_piece = board[ new_position.Item1, new_position.Item2 ];
         board[ new_position.Item1, new_position.Item2 ] = board[ ex_position.Item1, ex_position.Item2 ];
 
         yield return new WaitForSeconds(0.01f);
-        Destroy( pieces[ got_piece ].Object() );
+
+    //自分の駒を取られたら
+        if( got_piece < 10 )
+        {
+            pieces[ got_piece - 1 ].SwapEnable();
+
+            if( pieces[ got_piece - 1 ].Type() == 4 )
+            {
+                Lose();
+            }
+        }
+
+        //相手の駒をとったら
+        else if( got_piece > 10 )
+        {
+            enemy_pieces[ got_piece - 11 ].SwapEnable();
+
+            if( enemy_pieces[ got_piece - 11 ].Type() == 4 )
+            {
+                Win();
+            }
+        }
     }
 
     //盤面を更新
@@ -618,43 +679,57 @@ public class GameControl : MonoBehaviour
                 var J = (float)( j - 7 ) * 2f;
 
                 //その駒がとられてなくて，見えていない場合に見えるかチェック
-                if( enemy_pieces[k].Enable() && !enemy_pieces[k].Visible() )
+                if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == false )
                 {
-                    RaycastHit hit = new RaycastHit();
+                    Vector3 origin = new Vector3( X, 2f, Y );
+                    Vector3 destination = new Vector3( I, 2f, J );
+                    Vector3 ray = destination - origin;
 
-                    Vector3 origin = new Vector3( X, 1.2f, Y );
-                    Vector3 destination = new Vector3( I, 1.2f, J );
+                    RaycastHit hit;
 
                     //間に壁がなければ
-                    if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                    if ( !Physics.Raycast(origin, ray, out hit,ray.magnitude ) )
                     {
+                        //Debug.DrawRay(origin, ray, Color.red, 3f, false);
                         enemy_pieces[k].SwapVisible();
+                    }
+                    else
+                    {
+                        //Debug.DrawRay(origin, hit.point - origin, Color.red, 3f, false);
                     }
                 }
 
                 //その駒がとられてなくて，見えていたらまだ見えるかチェック
-                else if( enemy_pieces[k].Enable() && enemy_pieces[k].Visible() )
+                else if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == true )
                 {
                     bool visible = false;
+
                     //ある自分の駒に対して
                     for( int l = 0; l < 9; l++ )
                     {
                         var S = (float)(pieces[l].Position().Item1 - 7) * 2f;
                         var T = (float)(pieces[l].Position().Item2 - 7) * 2f;
-                        RaycastHit hit = new RaycastHit();
 
-                        Vector3 origin = new Vector3( S, 1.2f, T );
-                        Vector3 destination = new Vector3( I, 1.2f, J );
+                        Vector3 origin = new Vector3( S, 2f, T );
+                        Vector3 destination = new Vector3( I, 2f, J );
+                        Vector3 ray = destination - origin;
+
+                        RaycastHit hit;
 
                         //間に壁がなければ
-                        if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                        if ( !Physics.Raycast(origin, ray, out hit, ray.magnitude ) )
                         {
+                            //Debug.DrawRay(origin, ray, Color.blue, 3f, false);
                             visible = true;
+                        }
+                        else
+                        {
+                            //Debug.DrawRay(origin, hit.point - origin, Color.blue, 3f, false);
                         }
                     }
 
                     //すべての間に壁があったら
-                    if(!visible)
+                    if( visible == false )
                     {
                         enemy_pieces[k].SwapVisible();
                     }
@@ -676,13 +751,12 @@ public class GameControl : MonoBehaviour
                 //その駒がとられてなくて，見えていない場合にチェック
                 if( pieces[k].Enable() && !pieces[k].Visible() )
                 {
-                    RaycastHit hit = new RaycastHit();
-
-                    Vector3 origin = new Vector3( X, 1.2f, Y );
-                    Vector3 destination = new Vector3( I, 1.2f, J );
+                    Vector3 origin = new Vector3( X, 2f, Y );
+                    Vector3 destination = new Vector3( I, 2f, J );
+                    Vector3 ray = destination - origin;
 
                     //間に壁がなければ
-                    if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                    if ( !Physics.Raycast(origin, ray, ray.magnitude ) )
                     {
                         pieces[k].SwapVisible();
                     }
@@ -697,13 +771,13 @@ public class GameControl : MonoBehaviour
                     {
                         var S = (float)(enemy_pieces[l].Position().Item1 - 7) * 2f;
                         var T = (float)(enemy_pieces[l].Position().Item2 - 7) * 2f;
-                        RaycastHit hit = new RaycastHit();
 
-                        Vector3 origin = new Vector3( S, 1.2f, T );
-                        Vector3 destination = new Vector3( I, 1.2f, J );
+                        Vector3 origin = new Vector3( S, 2f, T );
+                        Vector3 destination = new Vector3( I, 2f, J );
+                        Vector3 ray = destination - origin;
 
                         //間に壁がなければ
-                        if ( !Physics.Raycast(origin, ( destination - origin ), out hit, ( destination - origin ).magnitude ) )
+                        if ( !Physics.Raycast(origin, ray, ray.magnitude ) )
                         {
                             visible = true;
                         }
@@ -720,8 +794,122 @@ public class GameControl : MonoBehaviour
     }
 
     //敵ターンを待機
-    void StartWaiting()
+    void SwapTurn()
     {
-        yourTurn = false;
+        if(yourTurn)
+        {
+            yourTurn = false;
+        }
+        else
+        {
+            yourTurn = true;
+        }
+
+        waiting_overlay.SetActive(!yourTurn);
+        turn_overlay.SetActive(yourTurn);
     }
+
+    //勝利時実行
+    private void Win()
+    {
+        // 効果音
+        GetComponent<AudioSource>().Play();
+        
+        turn_overlay.SetActive(false);
+        end_overlay.SetActive(true);
+    }
+
+    //相手が投了時実行
+    [PunRPC]
+    private void GiveUpWin()
+    {
+        // 効果音
+        GetComponent<AudioSource>().Play();
+
+        turn_overlay.SetActive(false);
+        end_overlay.SetActive(true);
+        GameObject txt = GameObject.Find("EndText").gameObject;
+        txt.GetComponent<TextMeshProUGUI>().text = "YOU WIN !!\nEnemy GIve Up";
+    }
+
+    //敗北時実行
+    private void Lose()
+    {
+        // 効果音
+        GetComponent<AudioSource>().Play();
+
+        turn_overlay.SetActive(false);
+        end_overlay.SetActive(true);
+        GameObject txt = GameObject.Find("EndText").gameObject;
+        txt.GetComponent<TextMeshProUGUI>().text = "YOU LOSE ...";
+    }
+
+    //投了
+    public void GiveUp()
+    {
+        view.RPC( nameof(GiveUpWin), RpcTarget.Others );
+        turn_overlay.SetActive(false);
+        Lose();
+    }
+
+    //部屋を作成
+    private void CreateRoom()
+    {
+        RoomOptions roomOptions = new RoomOptions();
+        roomOptions.MaxPlayers = 2;
+        PhotonNetwork.CreateRoom(null, roomOptions, null);
+        
+        yourTurn = true;
+    }
+
+    //マッチングを開始
+    private void Match()
+    {
+        Debug.Log("Look for Room");
+        PhotonNetwork.JoinRandomRoom();
+    }
+
+    //部屋がなかったら
+    public override void OnJoinRandomFailed(short returnCode, string message)
+    {
+        Debug.Log("Create Room (no server)");
+        CreateRoom();
+    }
+
+    //部屋に参加したら
+    public override void OnJoinedRoom()
+    {
+        Debug.Log("Joined Room");
+        if( PhotonNetwork.CountOfPlayersInRooms == 2 )
+        {
+            view.RPC( nameof(StartGame), RpcTarget.Others );
+        }    
+    }
+
+    // マスターサーバーへの接続が成功した時に呼ばれるコールバック
+    public override void OnConnectedToMaster() {
+        Debug.Log("Server Connected");
+        Match();
+    }
+
+    //ゲーム開始時
+    [PunRPC]
+    private void StartGame()
+    {
+        SwapTurn();
+    }
+
+    //タイトル画面へ
+    public void BackToTitle()
+    {
+        SceneManager.LoadScene("TitleScene", LoadSceneMode.Single);
+    }
+
+    //リマッチ
+    public void Rematch()
+    {
+        SceneManager.LoadScene("PlayScene", LoadSceneMode.Single);
+    }
+
+//github:tamaki12345
 }
