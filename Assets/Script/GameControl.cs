@@ -178,8 +178,11 @@ public class GameControl : MonoBehaviourPunCallbacks
             pieces[id - 1].SetPosition(x, y);
             enemy_pieces[id - 1].SetPosition(14 - x, 14 - y);
             enemy_pieces[id - 1].SwapVisible();
+        }
 
-            UpdateBoard( pieces[id - 1].Position() ) ;
+        for( int i = 0; i < 9; i++ )
+        {
+            UpdateBoard( pieces[i - 1].Position() ) ;
         }
     }
 
@@ -608,15 +611,15 @@ public class GameControl : MonoBehaviourPunCallbacks
     }
 
     //選択した位置を送信
-    void SendAction( (int, int) ex_position, (int, int) new_position, int id)
+    void SendAction( (int, int) ex_position, (int, int) new_position )
     {
-        view.RPC( nameof(GetAction) , RpcTarget.Others , ex_position, new_position );
-        GetAction(ex_position, new_position);
+        view.RPC( nameof(GetAction) , RpcTarget.Others , view.ViewID, ex_position, new_position );
+        GetAction( view.ViewID, ex_position, new_position);
     }
 
     //選択した位置を受信
     [PunRPC]
-    void GetAction( (int, int) ex_position, (int, int) new_position )
+    void GetAction( int viewID, (int, int) ex_position, (int, int) new_position )
     {
         var modify_ex_pos = ( 14 - ex_position.Item1, 14 - ex_position.Item2 );
         var modify_new_pos = ( 14 - new_position.Item1, 14 - new_position.Item2 );
@@ -821,7 +824,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
     //相手が投了時実行
     [PunRPC]
-    private void GiveUpWin()
+    private void GiveUpWin( int viewID )
     {
         // 効果音
         GetComponent<AudioSource>().Play();
@@ -847,7 +850,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     //投了
     public void GiveUp()
     {
-        view.RPC( nameof(GiveUpWin), RpcTarget.Others );
+        view.RPC( nameof(GiveUpWin), RpcTarget.Others, view.ViewID );
         turn_overlay.SetActive(false);
         Lose();
     }
@@ -882,7 +885,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         Debug.Log("<color=red>Joined Room, players : " + PhotonNetwork.CountOfPlayersInRooms + "</color>");
         if( PhotonNetwork.CountOfPlayersInRooms == 1 )
         {
-            view.RPC( nameof(StartGame), RpcTarget.Others );
+            view.RPC( nameof(StartGame), RpcTarget.Others, view.ViewID );
         }    
     }
 
@@ -899,7 +902,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         //test
         view.RPC( nameof(TestRPC), RpcTarget.All, view.ViewID );
 
-        StartGame();
+        //StartGame( view.ViewID );
     }
 
     //test
@@ -911,7 +914,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
     //ゲーム開始時
     [PunRPC]
-    private void StartGame()
+    private void StartGame( int viewID )
     {
         SwapTurn();
     }
