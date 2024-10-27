@@ -892,6 +892,13 @@ public class GameControl : MonoBehaviourPunCallbacks
         Match();
     }
 
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        Debug.Log("<color=blie>Other Player Joined Room, players : " + PhotonNetwork.CountOfPlayersInRooms + "</color>");
+
+        StartGame();
+    }
+
     //ゲーム開始時
     [PunRPC]
     private void StartGame()
