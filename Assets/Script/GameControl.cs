@@ -894,9 +894,19 @@ public class GameControl : MonoBehaviourPunCallbacks
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
-        Debug.Log("<color=blie>Other Player Joined Room, players : " + PhotonNetwork.CountOfPlayersInRooms + "</color>");
+        Debug.Log("<color=blue>Other Player Joined Room, players : " + PhotonNetwork.CountOfPlayersInRooms + "</color>");
+
+        //test
+        view.RPC( nameof(TestRPC), RpcTarget.All, view.ViewID );
 
         StartGame();
+    }
+
+    //test
+    [PunRPC]
+    void TestRPC( int viewID )
+    {
+        Debug.Log("<color=blue>Connect Test : " + view.ViewID + "</color>");
     }
 
     //ゲーム開始時
