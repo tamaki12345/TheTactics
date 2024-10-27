@@ -57,7 +57,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     private bool moving = false;
 
     //ターン中か
-    private bool yourTurn = false;
+    private bool yourTurn = true;
 
     //設置可能位置 表示Object List
     private List< GameObject > temporaryObjects = new List< GameObject >();
@@ -182,8 +182,10 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         for( int i = 0; i < 9; i++ )
         {
-            UpdateBoard( pieces[i - 1].Position() ) ;
+            UpdateBoard( pieces[i].Position() ) ;
         }
+
+        yourTurn = false;
     }
 
     //クリック位置を取得
@@ -883,10 +885,10 @@ public class GameControl : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         Debug.Log("<color=red>Joined Room, players : " + PhotonNetwork.CountOfPlayersInRooms + "</color>");
-        if( PhotonNetwork.CountOfPlayersInRooms == 1 )
-        {
-            view.RPC( nameof(StartGame), RpcTarget.Others, view.ViewID );
-        }    
+        // if( PhotonNetwork.CountOfPlayersInRooms == 1 )
+        // {
+        //     view.RPC( nameof(StartGame), RpcTarget.Others, view.ViewID );
+        // }    
     }
 
     // マスターサーバーへの接続が成功した時に呼ばれるコールバック
@@ -902,7 +904,9 @@ public class GameControl : MonoBehaviourPunCallbacks
         //test
         view.RPC( nameof(TestRPC), RpcTarget.All, view.ViewID );
 
-        //StartGame( view.ViewID );
+        //view.RPC( nameof() );
+
+        StartGame( view.ViewID );
     }
 
     //test
