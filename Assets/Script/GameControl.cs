@@ -82,6 +82,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         Application.targetFrameRate = 60; 
 
         InitializeBoard();
+        yourTurn = false;
 
         // PhotonServerSettingsの設定内容を使ってマスターサーバーへ接続する
         PhotonNetwork.ConnectUsingSettings();
@@ -99,7 +100,6 @@ public class GameControl : MonoBehaviourPunCallbacks
                 moving = true;
 
                 MovePiece(shownPoint, clickPoint);
-                UpdateBoard( clickPoint );
             }
             else if( SelectPiece() > 0 && !shown )
             {
@@ -184,8 +184,6 @@ public class GameControl : MonoBehaviourPunCallbacks
         {
             UpdateBoard( pieces[i].Position() ) ;
         }
-
-        yourTurn = false;
     }
 
     //クリック位置を取得
@@ -573,15 +571,12 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         obj.transform.position = destination_position;
 
-        StartCoroutine( DownObject(obj, downDestination) );
-
         DestroyTemporaries();
-
-        SwapTurn();
+        StartCoroutine( DownObject(obj, downDestination, destination) );
     }
 
     //駒移動アニメーション
-    IEnumerator DownObject(GameObject obj, float downDestination)
+    IEnumerator DownObject(GameObject obj, float downDestination, (int, int) destination )
     {
         yield return new WaitForSeconds(0.001f);
         var tmp = obj.transform.position;
@@ -589,13 +584,16 @@ public class GameControl : MonoBehaviourPunCallbacks
         obj.transform.position = tmp;
         if( tmp.y > downDestination )
         {
-            StartCoroutine(DownObject(obj, downDestination));
+            StartCoroutine(DownObject(obj, downDestination, destination));
         }
         else
         {
             moving = false;
             shown = false;
             installables = new List< (int, int) >();
+            
+            UpdateBoard( destination );
+            SwapTurn();
         }
     }
 
@@ -810,6 +808,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             yourTurn = true;
         }
 
+        Debug.Log(yourTurn);
         waiting_overlay.SetActive(!yourTurn);
         turn_overlay.SetActive(yourTurn);
     }
@@ -920,6 +919,8 @@ public class GameControl : MonoBehaviourPunCallbacks
     [PunRPC]
     private void StartGame( int viewID )
     {
+        Debug.Log("<color=red>Game Started with your turn!</color>   " + yourTurn);
+        yourTurn = false;
         SwapTurn();
     }
 
