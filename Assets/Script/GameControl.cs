@@ -865,22 +865,22 @@ public class GameControl : MonoBehaviourPunCallbacks
     //マッチングを開始
     private void Match()
     {
-        Debug.Log("Look for Room");
+        Debug.Log("<color=red>Look for Room</color>");
         PhotonNetwork.JoinRandomRoom();
     }
 
     //部屋がなかったら
     public override void OnJoinRandomFailed(short returnCode, string message)
     {
-        Debug.Log("Create Room (no server)");
+        Debug.Log("<color=red>Create Room (no server)</color>");
         CreateRoom();
     }
 
     //部屋に参加したら
     public override void OnJoinedRoom()
     {
-        Debug.Log("Joined Room");
-        if( PhotonNetwork.CountOfPlayersInRooms == 2 )
+        Debug.Log("<color=red>Joined Room, players : " + PhotonNetwork.CountOfPlayersInRooms + "</color>");
+        if( PhotonNetwork.CountOfPlayersInRooms == 1 )
         {
             view.RPC( nameof(StartGame), RpcTarget.Others );
         }    
@@ -888,7 +888,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
     // マスターサーバーへの接続が成功した時に呼ばれるコールバック
     public override void OnConnectedToMaster() {
-        Debug.Log("Server Connected");
+        Debug.Log("<colo=red>Server Connected</color>");
         Match();
     }
 
