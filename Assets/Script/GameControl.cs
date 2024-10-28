@@ -551,11 +551,21 @@ public class GameControl : MonoBehaviourPunCallbacks
         {
             var id = board[ (int)destination.Item1, (int)destination.Item2 ];
             pieces[id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+
+            if( board[ (int)destination.Item1, (int)destination.Item2 ] > 10 )
+            {
+                Win();
+            }
         }
         else
         {
             var id = board[ (int)destination.Item1, (int)destination.Item2 ];
             enemy_pieces[id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+
+            if( board[ (int)destination.Item1, (int)destination.Item2 ] > 0 )
+            {
+                Lose();
+            }
         }
 
         Vector3 destination_position = new Vector3();
@@ -593,7 +603,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             installables = new List< (int, int) >();
             
             UpdateBoard( destination );
-            SwapTurn();
+            //SwapTurn();
         }
     }
 
@@ -624,24 +634,19 @@ public class GameControl : MonoBehaviourPunCallbacks
         var modify_ex_pos = ( 14 - ex_position.Item1, 14 - ex_position.Item2 );
         var modify_new_pos = ( 14 - new_position.Item1, 14 - new_position.Item2 );
 
-        if( board[ modify_new_pos.Item1, modify_new_pos.Item2 ] > 0 )
-        {
-            GotPiece( modify_new_pos , modify_ex_pos );
-        }
+        MovePiece( modify_new_pos , modify_ex_pos );
         UpdateBoard( modify_new_pos );
 
         SwapTurn();
     }
 
     //駒をとった・とられた
-    IEnumerator GotPiece( (int, int) ex_position, (int, int) new_position  )
+    void GotPiece( (int, int) ex_position, (int, int) new_position  )
     {
         int got_piece = board[ new_position.Item1, new_position.Item2 ];
         board[ new_position.Item1, new_position.Item2 ] = board[ ex_position.Item1, ex_position.Item2 ];
 
-        yield return new WaitForSeconds(0.01f);
-
-    //自分の駒を取られたら
+        //自分の駒を取られたら
         if( got_piece < 10 )
         {
             pieces[ got_piece - 1 ].SwapEnable();
@@ -802,10 +807,12 @@ public class GameControl : MonoBehaviourPunCallbacks
         if(yourTurn)
         {
             yourTurn = false;
+            Debug.Log("<color=green>ENEMY TURN</color>");
         }
         else
         {
             yourTurn = true;
+            Debug.Log("<color=green>YOUR TURN</color>");
         }
 
         Debug.Log(yourTurn);
