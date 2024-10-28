@@ -623,16 +623,16 @@ public class GameControl : MonoBehaviourPunCallbacks
     //選択した位置を送信
     void SendAction( (int, int) ex_position, (int, int) new_position )
     {
-        view.RPC( nameof(GetAction) , RpcTarget.Others , view.ViewID, ex_position, new_position );
-        GetAction( ex_position, new_position);
+        view.RPC( nameof(GetAction) , RpcTarget.Others , ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
+        GetAction( ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
     }
 
     //選択した位置を受信
     [PunRPC]
-    void GetAction( (int, int) ex_position, (int, int) new_position )
+    void GetAction( int ex_position_x, int ex_position_y, int new_position_x, int new_position_y )
     {
-        var modify_ex_pos = ( 14 - ex_position.Item1, 14 - ex_position.Item2 );
-        var modify_new_pos = ( 14 - new_position.Item1, 14 - new_position.Item2 );
+        var modify_ex_pos = ( 14 - ex_position_x, 14 - ex_position_y );
+        var modify_new_pos = ( 14 - new_position_x, 14 - new_position_y );
 
         MovePiece( modify_new_pos , modify_ex_pos );
 
