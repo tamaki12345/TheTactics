@@ -550,21 +550,29 @@ public class GameControl : MonoBehaviourPunCallbacks
         if( yourTurn )
         {
             var id = board[ (int)destination.Item1, (int)destination.Item2 ];
-            pieces[id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
 
             if( board[ (int)destination.Item1, (int)destination.Item2 ] > 10 )
             {
-                Win();
+                pieces[id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+
+                if( pieces[id-1].Type() == 4 )
+                {
+                    Win();
+                }
             }
         }
         else
         {
             var id = board[ (int)destination.Item1, (int)destination.Item2 ];
-            enemy_pieces[id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
 
             if( board[ (int)destination.Item1, (int)destination.Item2 ] > 0 )
             {
-                Lose();
+                enemy_pieces[id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+                
+                if( enemy_pieces[id-11].Type() == 4 )
+                {
+                    Lose();
+                }
             }
         }
 
