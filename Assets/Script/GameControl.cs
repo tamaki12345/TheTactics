@@ -631,7 +631,9 @@ public class GameControl : MonoBehaviourPunCallbacks
     void SendAction( (int, int) ex_position, (int, int) new_position )
     {
         view.RPC( nameof(GetAction) , RpcTarget.Others , ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
-        GetAction( ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
+        //GetAction( ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
+        MovePiece( ex_position, new_position );
+        SwapTurn();
     }
 
     //選択した位置を受信
@@ -641,7 +643,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         var modify_ex_pos = ( 14 - ex_position_x, 14 - ex_position_y );
         var modify_new_pos = ( 14 - new_position_x, 14 - new_position_y );
 
-        MovePiece( modify_new_pos , modify_ex_pos );
+        MovePiece( modify_ex_pos, modify_new_pos );
 
         SwapTurn();
     }
