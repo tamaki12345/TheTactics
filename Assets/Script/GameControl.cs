@@ -99,7 +99,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 moving = true;
 
-                MovePiece(shownPoint, clickPoint);
+                SendAction(shownPoint, clickPoint);
             }
             else if( SelectPiece() > 0 && !shown )
             {
