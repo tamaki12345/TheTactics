@@ -229,56 +229,56 @@ public class GameControl : MonoBehaviourPunCallbacks
         {
             if( x + 1 < 15 )
             {
-                if( board[ x + 1 , y ] == 0 )
+                if( board[ x + 1 , y ] == 0 || board[ x + 1 , y ] > 10 )
                 {
                     ret.Add( ( x + 1 , y ) );
                 }
             }
             if( x + 1 < 15 && y + 1 < 15 )
             {
-                if( board[ x + 1 , y + 1 ] == 0 )
+                if( board[ x + 1 , y + 1 ] == 0 || board[ x + 1 , y + 1 ] > 10 )
                 {
                     ret.Add( ( x + 1 , y + 1 ) );
                 }
             }
             if( y + 1 < 15)
             {
-                if( board[ x , y + 1 ] == 0 )
+                if( board[ x , y + 1 ] == 0 || board[ x , y + 1 ] > 10 )
                 {
                     ret.Add( ( x , y + 1 ) );
                 }
             }
             if( x - 1 >= 0 && y + 1 < 15 )
             {
-                if( board[ x - 1 , y + 1 ] == 0 )
+                if( board[ x - 1 , y + 1 ] == 0 || board[ x - 1 , y + 1 ] > 10 )
                 {
                     ret.Add( ( x - 1 , y + 1 ) );
                 }
             }
             if( x - 1 >= 0 )
             {
-                if( board[ x - 1 , y ] == 0 )
+                if( board[ x - 1 , y ] == 0 || board[ x - 1 , y ] > 10 )
                 {
                     ret.Add( ( x - 1 , y ) );
                 }
             }
             if( x - 1 >= 0 && y - 1 >= 0 )
             {
-                if( board[ x - 1 , y - 1 ] == 0 )
+                if( board[ x - 1 , y - 1 ] == 0 || board[ x - 1 , y - 1 ] > 10 )
                 {
                     ret.Add( ( x - 1 , y - 1 ) );
                 }
             }
             if( y - 1 >= 0 )
             {
-                if( board[ x , y - 1 ] == 0 )
+                if( board[ x , y - 1 ] == 0 || board[ x , y - 1 ] > 10 )
                 {
                     ret.Add( ( x , y - 1 ) );
                 }
             }
             if( x + 1 < 15 && y - 1 >= 0 )
             {
-                if( board[ x + 1 , y - 1 ] == 0 )
+                if( board[ x + 1 , y - 1 ] == 0 || board[ x + 1 , y - 1 ] > 10 )
                 {
                     ret.Add( ( x + 1 , y - 1 ) );
                 }
@@ -291,44 +291,44 @@ public class GameControl : MonoBehaviourPunCallbacks
         {
             if( x + 2 < 15 )
             {
-                if( y + 1 < 15 && board[ x + 2 , y + 1 ] == 0 )
+                if( y + 1 < 15 && (board[ x + 2 , y + 1 ] == 0 || board[ x + 2 , y + 1 ] > 10 ) )
                 {
                     ret.Add( ( x + 2 , y + 1 ) );
                 }
-                if( y - 1 >= 0 && board[ x + 2 , y - 1 ] == 0 )
+                if( y - 1 >= 0 && ( board[ x + 2 , y - 1 ] == 0 || board[ x + 2 , y - 1 ] > 10 ) )
                 {
                     ret.Add( ( x + 2 , y - 1 ) );
                 }
             }
             if( y + 2 < 15 )
             {
-                if( x + 1 < 15 && board[ x + 1 , y + 2 ] == 0 )
+                if( x + 1 < 15 && ( board[ x + 1 , y + 2 ] == 0 || board[ x + 1 , y + 2 ] > 10) )
                 {
                     ret.Add( ( x + 1 , y + 2 ) );
                 }
-                if( x - 1 >= 0 && board[ x - 1 , y + 2 ] == 0 )
+                if( x - 1 >= 0 && ( board[ x - 1 , y + 2 ] == 0 || board[ x - 1 , y + 2 ] > 10) )
                 {
                     ret.Add( ( x - 1 , y + 2 ) );
                 }
             }
             if( x - 2 >= 0 )
             {
-                if( y + 1 < 15 && board[ x - 2 , y + 1 ] == 0 )
+                if( y + 1 < 15 && ( board[ x - 2 , y + 1 ] == 0 || board[ x - 2 , y + 1 ] > 10) )
                 {
                     ret.Add( ( x - 2 , y + 1 ) );
                 }
-                if( y - 1 >= 0 && board [ x - 2 , y - 1 ] == 0 )
+                if( y - 1 >= 0 && ( board [ x - 2 , y - 1 ] == 0 || board [ x - 2 , y - 1 ] > 10) )
                 {
                     ret.Add( ( x - 2 , y - 1 ) );
                 }
             }
             if( y - 2 >= 0 )
             {
-                if( x + 1 < 15 && board[ x + 1 , y - 2 ] == 0 )
+                if( x + 1 < 15 && ( board[ x + 1 , y - 2 ] == 0 || board[ x + 1 , y - 2 ] > 10) )
                 {
                     ret.Add( ( x + 1 , y - 2 ) );
                 }
-                if( x - 1 >= 0 && board[ x - 1 , y - 2 ] == 0 )
+                if( x - 1 >= 0 && ( board[ x - 1 , y - 2 ] == 0 || board[ x - 1 , y - 2 ] > 10 ) )
                 {
                     ret.Add( ( x - 1 , y - 2 ) );
                 }
@@ -346,7 +346,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x + i < 15 )
                 {
-                    if( board[ x + i, y ] == 0)
+                    if( board[ x + i, y ] == 0 || board[ x + i, y ] > 10 )
                     {
                         ret.Add( ( x + i, y ) );
                         i++;
@@ -368,7 +368,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x + i < 15 && y + j < 15 )
                 {
-                    if( board[ x + i, y + j ] == 0)
+                    if( board[ x + i, y + j ] == 0 || board[ x + i, y + j ] > 10 )
                     {
                         ret.Add( ( x + i, y + j ) );
                         i++;
@@ -390,7 +390,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( y + j < 15 )
                 {
-                    if( board[ x , y + j ] == 0)
+                    if( board[ x , y + j ] == 0 || board[ x , y + j ] > 10 )
                     {
                         ret.Add( ( x , y + j ) );
                         j++;
@@ -412,7 +412,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x - i >= 0 && y + j < 15 )
                 {
-                    if( board[ x - i, y + j ]  == 0)
+                    if( board[ x - i, y + j ]  == 0 || board[ x - i, y + j ]  > 10 )
                     {
                         ret.Add( ( x - i, y + j ) );
                         i++;
@@ -434,7 +434,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x - i >= 0 )
                 {
-                    if( board[ x - i, y ] == 0 )
+                    if( board[ x - i, y ] == 0 || board[ x - i, y ] > 10 )
                     {
                         ret.Add( ( x - i, y ) );
                         i++;
@@ -456,7 +456,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x - i >= 0 && y - j >= 0 )
                 {
-                    if( board[ x - i, y - j ] == 0 )
+                    if( board[ x - i, y - j ] == 0 || board[ x - i, y - j ] > 10 )
                     {
                         ret.Add( ( x - i, y - j ) );
                         i++;
@@ -478,7 +478,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( y - j >= 0 )
                 {
-                    if( board[ x , y - j ] == 0 )
+                    if( board[ x , y - j ] == 0 || board[ x , y - j ] > 10 )
                     {
                         ret.Add( ( x , y - j ) );
                         j++;
@@ -500,7 +500,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x + i < 15 && y - j >= 0 )
                 {
-                    if( board[ x + i, y - j ] == 0 )
+                    if( board[ x + i, y - j ] == 0 || board[ x + i, y - j ] > 10 )
                     {
                         ret.Add( ( x + i, y - j ) );
                         i++;
