@@ -558,7 +558,7 @@ public class GameControl : MonoBehaviourPunCallbacks
                 pieces[original_id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
                 enemy_pieces[destination_id - 11].SwapEnable();
 
-                if( pieces[destination_id-1].Type() == 4 )
+                if( enemy_pieces[destination_id-11].Type() == 4 )
                 {
                     Win();
                 }
@@ -573,7 +573,7 @@ public class GameControl : MonoBehaviourPunCallbacks
                 enemy_pieces[original_id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
                 pieces[destination_id-1].SwapEnable();
                 
-                if( enemy_pieces[destination_id-11].Type() == 4 )
+                if( pieces[destination_id-1].Type() == 4 )
                 {
                     Lose();
                 }
@@ -583,9 +583,8 @@ public class GameControl : MonoBehaviourPunCallbacks
         board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)original.Item1, (int)original.Item2 ];
         board[ (int)original.Item1, (int)original.Item2 ] = 0;
 
-        Vector3 destination_position = new Vector3();
+        Vector3 destination_position = obj.transform.position;
 
-        destination_position = obj.transform.position;
         float downDestination = destination_position.y;
 
         destination_position.x = ( (float)destination.Item1 - 7f ) * 2f;
