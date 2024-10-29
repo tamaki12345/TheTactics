@@ -611,7 +611,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             installables = new List< (int, int) >();
             
             UpdateBoard( destination );
-            //SwapTurn();
+            SwapTurn();
         }
     }
 
@@ -634,7 +634,6 @@ public class GameControl : MonoBehaviourPunCallbacks
         view.RPC( nameof(GetAction) , RpcTarget.Others , ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
         //GetAction( ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
         MovePiece( ex_position, new_position );
-        SwapTurn();
     }
 
     //選択した位置を受信
@@ -645,8 +644,6 @@ public class GameControl : MonoBehaviourPunCallbacks
         var modify_new_pos = ( 14 - new_position_x, 14 - new_position_y );
 
         MovePiece( modify_ex_pos, modify_new_pos );
-
-        SwapTurn();
     }
 
     //駒をとった・とられた
