@@ -755,6 +755,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         else 
         {
             int enemy_id = board[ new_position.Item1, new_position.Item2 ] - 11;
+            
             //ある自分の駒に対して
             for( int k = 0; k < 9; k++ )
             {
@@ -764,7 +765,7 @@ public class GameControl : MonoBehaviourPunCallbacks
                 var J = (float)( j - 7 ) * 2f;
 
                 //その駒がとられてなくて，見えていない場合にチェック
-                if( pieces[k].Enable() && !pieces[k].Visible() )
+                if( enemy_pieces[ enemy_id ].Enable() && !enemy_pieces[ enemy_id ].Visible() )
                 {
                     Vector3 origin = new Vector3( X, 2f, Y );
                     Vector3 destination = new Vector3( I, 2f, J );
@@ -776,34 +777,6 @@ public class GameControl : MonoBehaviourPunCallbacks
                         enemy_pieces[ enemy_id ].SwapVisible();
                     }
                 }
-
-                // //その駒がとられてなくて，見えていたらまだ見えるかチェック
-                // else if( pieces[k].Enable() && pieces[k].Visible() )
-                // {
-                //     bool visible = false;
-                //     //ある敵の駒に対して
-                //     for( int l = 0; l < 9; l++ )
-                //     {
-                //         var S = (float)(enemy_pieces[l].Position().Item1 - 7) * 2f;
-                //         var T = (float)(enemy_pieces[l].Position().Item2 - 7) * 2f;
-
-                //         Vector3 origin = new Vector3( S, 2f, T );
-                //         Vector3 destination = new Vector3( I, 2f, J );
-                //         Vector3 ray = destination - origin;
-
-                //         //間に壁がなければ
-                //         if ( !Physics.Raycast(origin, ray, ray.magnitude ) )
-                //         {
-                //             visible = true;
-                //         }
-                //     }
-
-                //     //すべての間に壁があったら
-                //     if(!visible)
-                //     {
-                //         pieces[k].SwapVisible();
-                //     }
-                // }
             }
         }
     }
