@@ -552,10 +552,10 @@ public class GameControl : MonoBehaviourPunCallbacks
         if( yourTurn )
         {
             obj = pieces[ original_id - 1 ].Object();
+            pieces[original_id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
 
             if( destination_id > 10 )
             {
-                pieces[original_id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
                 enemy_pieces[destination_id - 11].SwapEnable();
 
                 if( enemy_pieces[destination_id-11].Type() == 4 )
@@ -567,10 +567,10 @@ public class GameControl : MonoBehaviourPunCallbacks
         else
         {
             obj = enemy_pieces[ original_id - 11 ].Object();
+            enemy_pieces[original_id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
 
             if( destination_id > 0 )
             {
-                enemy_pieces[original_id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
                 pieces[destination_id-1].SwapEnable();
                 
                 if( pieces[destination_id-1].Type() == 4 )
