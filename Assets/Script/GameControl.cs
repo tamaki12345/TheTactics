@@ -583,9 +583,9 @@ public class GameControl : MonoBehaviourPunCallbacks
         destination_position = obj.transform.position;
         float downDestination = destination_position.y;
 
-        destination_position.x = ( (float)clickPoint.Item1 - 7f ) * 2f;
+        destination_position.x = ( (float)destination.Item1 - 7f ) * 2f;
         destination_position.y = 5f;
-        destination_position.z = ( (float)clickPoint.Item2 - 7f ) * 2f;
+        destination_position.z = ( (float)destination.Item2 - 7f ) * 2f;
 
         obj.transform.position = destination_position;
 
@@ -632,7 +632,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     void SendAction( (int, int) ex_position, (int, int) new_position )
     {
         view.RPC( nameof(GetAction) , RpcTarget.Others , ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
-        //GetAction( ex_position.Item1, ex_position.Item2, new_position.Item1, new_position.Item2 );
+ 
         MovePiece( ex_position, new_position );
     }
 
