@@ -544,14 +544,16 @@ public class GameControl : MonoBehaviourPunCallbacks
     //駒を移動
     void MovePiece( (int, int) original, (int, int) destination )
     {
-        board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)shownPoint.Item1, (int)shownPoint.Item2 ];
+        GameObject obj;
+
+        board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)original.Item1, (int)original.Item2 ];
         board[ (int)original.Item1, (int)original.Item2 ] = 0;
         
-        int origin_id = board[ (int)original.Item1, (int)original.Item2 ];
         int destination_id = board[ (int)destination.Item1, (int)destination.Item2 ];
 
         if( yourTurn )
         {
+            obj = pieces[ destination_id - 1 ].Object();
             if( destination_id > 10 )
             {
                 pieces[destination_id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
@@ -564,6 +566,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
         else
         {
+            obj = enemy_pieces[ destination_id - 11 ].Object();
             if( destination_id > 0 )
             {
                 enemy_pieces[destination_id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
@@ -576,9 +579,6 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
 
         Vector3 destination_position = new Vector3();
-
-        Debug.Log(destination_id);
-        GameObject obj = pieces[ destination_id - 1 ].Object();
 
         destination_position = obj.transform.position;
         float downDestination = destination_position.y;
@@ -754,6 +754,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         //相手のターンだったら
         else 
         {
+            int enemy_id = board[ new_position.Item1, new_position.Item2 ] - 11;
             //ある自分の駒に対して
             for( int k = 0; k < 9; k++ )
             {
@@ -772,37 +773,37 @@ public class GameControl : MonoBehaviourPunCallbacks
                     //間に壁がなければ
                     if ( !Physics.Raycast(origin, ray, ray.magnitude ) )
                     {
-                        pieces[k].SwapVisible();
+                        enemy_pieces[ enemy_id ].SwapVisible();
                     }
                 }
 
-                //その駒がとられてなくて，見えていたらまだ見えるかチェック
-                else if( pieces[k].Enable() && pieces[k].Visible() )
-                {
-                    bool visible = false;
-                    //ある敵の駒に対して
-                    for( int l = 0; l < 9; l++ )
-                    {
-                        var S = (float)(enemy_pieces[l].Position().Item1 - 7) * 2f;
-                        var T = (float)(enemy_pieces[l].Position().Item2 - 7) * 2f;
+                // //その駒がとられてなくて，見えていたらまだ見えるかチェック
+                // else if( pieces[k].Enable() && pieces[k].Visible() )
+                // {
+                //     bool visible = false;
+                //     //ある敵の駒に対して
+                //     for( int l = 0; l < 9; l++ )
+                //     {
+                //         var S = (float)(enemy_pieces[l].Position().Item1 - 7) * 2f;
+                //         var T = (float)(enemy_pieces[l].Position().Item2 - 7) * 2f;
 
-                        Vector3 origin = new Vector3( S, 2f, T );
-                        Vector3 destination = new Vector3( I, 2f, J );
-                        Vector3 ray = destination - origin;
+                //         Vector3 origin = new Vector3( S, 2f, T );
+                //         Vector3 destination = new Vector3( I, 2f, J );
+                //         Vector3 ray = destination - origin;
 
-                        //間に壁がなければ
-                        if ( !Physics.Raycast(origin, ray, ray.magnitude ) )
-                        {
-                            visible = true;
-                        }
-                    }
+                //         //間に壁がなければ
+                //         if ( !Physics.Raycast(origin, ray, ray.magnitude ) )
+                //         {
+                //             visible = true;
+                //         }
+                //     }
 
-                    //すべての間に壁があったら
-                    if(!visible)
-                    {
-                        pieces[k].SwapVisible();
-                    }
-                }
+                //     //すべての間に壁があったら
+                //     if(!visible)
+                //     {
+                //         pieces[k].SwapVisible();
+                //     }
+                // }
             }
         }
     }
@@ -905,7 +906,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
     // マスターサーバーへの接続が成功した時に呼ばれるコールバック
     public override void OnConnectedToMaster() {
-        Debug.Log("<colo=red>Server Connected</color>");
+        Debug.Log("<color=red>Server Connected</color>");
         Match();
     }
 
