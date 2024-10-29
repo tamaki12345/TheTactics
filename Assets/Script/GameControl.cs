@@ -545,18 +545,18 @@ public class GameControl : MonoBehaviourPunCallbacks
     void MovePiece( (int, int) original, (int, int) destination )
     {
         GameObject obj;
-
-        board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)original.Item1, (int)original.Item2 ];
-        board[ (int)original.Item1, (int)original.Item2 ] = 0;
         
+        int original_id = board[ (int)original.Item1, (int)original.Item2 ];
         int destination_id = board[ (int)destination.Item1, (int)destination.Item2 ];
 
         if( yourTurn )
         {
-            obj = pieces[ destination_id - 1 ].Object();
+            obj = pieces[ original_id - 1 ].Object();
+
             if( destination_id > 10 )
             {
-                pieces[destination_id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+                pieces[original_id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+                enemy_pieces[destination_id - 11].SwapEnable();
 
                 if( pieces[destination_id-1].Type() == 4 )
                 {
@@ -566,10 +566,12 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
         else
         {
-            obj = enemy_pieces[ destination_id - 11 ].Object();
+            obj = enemy_pieces[ original_id - 11 ].Object();
+
             if( destination_id > 0 )
             {
-                enemy_pieces[destination_id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+                enemy_pieces[original_id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
+                pieces[destination_id-1].SwapEnable();
                 
                 if( enemy_pieces[destination_id-11].Type() == 4 )
                 {
@@ -577,6 +579,9 @@ public class GameControl : MonoBehaviourPunCallbacks
                 }
             }
         }
+
+        board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)original.Item1, (int)original.Item2 ];
+        board[ (int)original.Item1, (int)original.Item2 ] = 0;
 
         Vector3 destination_position = new Vector3();
 
