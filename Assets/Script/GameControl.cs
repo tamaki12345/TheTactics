@@ -577,7 +577,8 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         Vector3 destination_position = new Vector3();
 
-        GameObject obj = pieces[ origin_id - 1 ].Object();
+        Debug.Log(destination_id);
+        GameObject obj = pieces[ destination_id - 1 ].Object();
 
         destination_position = obj.transform.position;
         float downDestination = destination_position.y;
