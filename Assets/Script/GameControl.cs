@@ -104,7 +104,6 @@ public class GameControl : MonoBehaviourPunCallbacks
             else if( SelectPiece() > 0 && !shown )
             {
                 shown = true;
-                DestroyTemporaries();
                 selected = SelectPiece();
                 shownPoint = clickPoint;
 
@@ -119,14 +118,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             }
             else if( SelectPiece() > 0 && shown )
             {
-                if( shownPoint == clickPoint )
-                {
-                    moving = false;
-                    shown = false;
-                    installables = new List< (int, int) >();
-                    DestroyTemporaries();
-                }
-                else
+                if( shownPoint != clickPoint )
                 {
                     DestroyTemporaries();
                     selected = SelectPiece();
@@ -663,6 +655,8 @@ public class GameControl : MonoBehaviourPunCallbacks
                     Win();
                 }
             }
+
+            waiting_overlay.SetActive(true);
         }
         else
         {
@@ -678,9 +672,11 @@ public class GameControl : MonoBehaviourPunCallbacks
                     Lose();
                 }
             }
+
+            waiting_overlay.SetActive(false);
         }
 
-        board[ (int)destination.Item1, (int)destination.Item2 ] = board[ (int)original.Item1, (int)original.Item2 ];
+        board[ (int)destination.Item1, (int)destination.Item2 ] = original_id;
         board[ (int)original.Item1, (int)original.Item2 ] = 0;
 
         Vector3 destination_position = obj.transform.position;
@@ -693,10 +689,15 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         obj.transform.position = destination_position;
 
+        UpdateBoard( destination );
         DestroyTemporaries();
         StartCoroutine( DownObject(obj, downDestination, destination) );
     }
 
+    void DownObject(float downDestination)
+    {
+
+    }
     //駒移動アニメーション
     IEnumerator DownObject(GameObject obj, float downDestination, (int, int) destination )
     {
@@ -714,7 +715,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             shown = false;
             installables = new List< (int, int) >();
             
-            UpdateBoard( destination );
+            //UpdateBoard( destination );
             SwapTurn();
         }
     }
@@ -908,7 +909,6 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
 
         Debug.Log(yourTurn);
-        waiting_overlay.SetActive(!yourTurn);
         turn_overlay.SetActive(yourTurn);
     }
 
@@ -918,6 +918,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         // 効果音
         GetComponent<AudioSource>().Play();
         
+        waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);
         end_overlay.SetActive(true);
     }
@@ -929,6 +930,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         // 効果音
         GetComponent<AudioSource>().Play();
 
+        waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);
         end_overlay.SetActive(true);
         GameObject txt = GameObject.Find("EndText").gameObject;
@@ -941,6 +943,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         // 効果音
         GetComponent<AudioSource>().Play();
 
+        waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);
         end_overlay.SetActive(true);
         GameObject txt = GameObject.Find("EndText").gameObject;
@@ -1021,6 +1024,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     {
         Debug.Log("<color=red>Game Started with your turn!</color>   " + yourTurn);
         yourTurn = false;
+        waiting_overlay.SetActive(false);
         SwapTurn();
     }
 
