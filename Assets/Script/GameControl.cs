@@ -12,10 +12,10 @@ using TMPro;
 public class GameControl : MonoBehaviourPunCallbacks
 {
     //プレイヤーの駒
-    private Piece_Class[] pieces = new Piece_Class[9];
+    private Piece_Class[] pieces = new Piece_Class[10];
     
     //相手の駒
-    private Piece_Class[] enemy_pieces = new Piece_Class[9];
+    private Piece_Class[] enemy_pieces = new Piece_Class[10];
     
     //盤面変数, player:1~9, enemy:11~19, wall:-1
     private int[,] board = new int[15, 15];
@@ -27,8 +27,8 @@ public class GameControl : MonoBehaviourPunCallbacks
     };
 
     //駒初期位置
-    private int[,] piece_point = new int[9, 3] {
-        {4, 0, 5}, {7, 0, 9}, {10, 0, 6}, {3, 1, 1}, {5, 1, 7}, {9, 1, 8}, {11, 1, 2}, {6, 2, 3}, {8, 2, 4}
+    private int[,] piece_point = new int[10, 3] {
+        {4, 0, 5}, {7, 0, 9}, {10, 0, 6}, {3, 1, 1}, {5, 1, 7}, {9, 1, 8}, {11, 1, 2}, {6, 2, 3}, {7, 3, 10}, {8, 2, 4}
     };
 
     //mainCamera
@@ -117,6 +117,31 @@ public class GameControl : MonoBehaviourPunCallbacks
 
                 ShowInstallable(installables);
             }
+            else if( SelectPiece() > 0 && shown )
+            {
+                if( shownPoint == clickPoint )
+                {
+                    moving = false;
+                    shown = false;
+                    installables = new List< (int, int) >();
+                    DestroyTemporaries();
+                }
+                else
+                {
+                    DestroyTemporaries();
+                    selected = SelectPiece();
+                    shownPoint = clickPoint;
+
+                    Piece_Class selected_piece = pieces[ selected - 1 ];
+
+                    int id = selected_piece.Id();
+
+                    installables = new List< (int, int) >();
+                    installables = GetInstallableTiles(id);
+
+                    ShowInstallable(installables);
+                }
+            }
             else if( SelectPiece() < 1 )
             {
                 moving = false;
@@ -150,6 +175,7 @@ public class GameControl : MonoBehaviourPunCallbacks
             pieces[6] = new Piece_Class("tank", 7, 3);
             pieces[7] = new Piece_Class("tank (1)", 8, 3);
             pieces[8] = new Piece_Class("target", 9, 4);
+            pieces[9] = new Piece_Class("tank (2)", 10, 3);
         }
 
         //敵駒の情報の整理
@@ -163,10 +189,11 @@ public class GameControl : MonoBehaviourPunCallbacks
             enemy_pieces[6] = new Piece_Class("enemy_tank", 7, 3);
             enemy_pieces[7] = new Piece_Class("enemy_tank (1)", 8, 3);
             enemy_pieces[8] = new Piece_Class("enemy_target", 9, 4);
+            enemy_pieces[9] = new Piece_Class("enemy_tank (2)", 10, 3);
         }
 
         //駒の初期位置
-        for( int i = 0; i < 9; i++ )
+        for( int i = 0; i < 10; i++ )
         {
             int x = piece_point[i,0];
             int y = piece_point[i,1];
@@ -178,6 +205,15 @@ public class GameControl : MonoBehaviourPunCallbacks
             pieces[id - 1].SetPosition(x, y);
             enemy_pieces[id - 1].SetPosition(14 - x, 14 - y);
             enemy_pieces[id - 1].SwapVisible();
+
+            if(!pieces[i].Enable())
+            {
+                pieces[i].SwapEnable();
+            }
+            if(!enemy_pieces[i].Enable())
+            {
+                enemy_pieces[i].SwapEnable();
+            }
         }
 
         for( int i = 0; i < 9; i++ )
@@ -293,44 +329,68 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( y + 1 < 15 && (board[ x + 2 , y + 1 ] == 0 || board[ x + 2 , y + 1 ] > 10 ) )
                 {
-                    ret.Add( ( x + 2 , y + 1 ) );
+                    if( board[ x + 1, y ] > -1 && board[ x + 1, y + 1 ] > -1 )
+                    {
+                        ret.Add( ( x + 2 , y + 1 ) );
+                    }
                 }
                 if( y - 1 >= 0 && ( board[ x + 2 , y - 1 ] == 0 || board[ x + 2 , y - 1 ] > 10 ) )
                 {
-                    ret.Add( ( x + 2 , y - 1 ) );
+                    if( board[ x + 1, y ] > -1 && board[ x + 1, y - 1 ] > -1 )
+                    {
+                        ret.Add( ( x + 2 , y - 1 ) );
+                    }
                 }
             }
             if( y + 2 < 15 )
             {
                 if( x + 1 < 15 && ( board[ x + 1 , y + 2 ] == 0 || board[ x + 1 , y + 2 ] > 10) )
                 {
-                    ret.Add( ( x + 1 , y + 2 ) );
+                    if( board[ x , y + 1 ] > -1 && board[ x + 1, y + 1 ] > -1 )
+                    {
+                        ret.Add( ( x + 1 , y + 2 ) );
+                    }
                 }
                 if( x - 1 >= 0 && ( board[ x - 1 , y + 2 ] == 0 || board[ x - 1 , y + 2 ] > 10) )
                 {
-                    ret.Add( ( x - 1 , y + 2 ) );
+                    if( board[ x , y + 1 ] > -1 && board[ x - 1, y + 1 ] > -1 )
+                    {
+                        ret.Add( ( x - 1 , y + 2 ) );
+                    }
                 }
             }
             if( x - 2 >= 0 )
             {
                 if( y + 1 < 15 && ( board[ x - 2 , y + 1 ] == 0 || board[ x - 2 , y + 1 ] > 10) )
                 {
-                    ret.Add( ( x - 2 , y + 1 ) );
+                    if( board[ x - 1, y ] > -1 && board[ x - 1, y + 1 ] > -1 )
+                    {
+                        ret.Add( ( x - 2 , y + 1 ) );
+                    }
                 }
                 if( y - 1 >= 0 && ( board [ x - 2 , y - 1 ] == 0 || board [ x - 2 , y - 1 ] > 10) )
                 {
-                    ret.Add( ( x - 2 , y - 1 ) );
+                    if( board[ x - 1, y ] > -1 && board[ x - 1, y - 1 ] > -1 )
+                    {
+                        ret.Add( ( x - 2 , y - 1 ) );
+                    }
                 }
             }
             if( y - 2 >= 0 )
             {
                 if( x + 1 < 15 && ( board[ x + 1 , y - 2 ] == 0 || board[ x + 1 , y - 2 ] > 10) )
                 {
-                    ret.Add( ( x + 1 , y - 2 ) );
+                    if( board[ x + 1, y - 1 ] > -1 && board[ x , y - 1 ] > -1 )
+                    {
+                        ret.Add( ( x + 1 , y - 2 ) );
+                    }
                 }
                 if( x - 1 >= 0 && ( board[ x - 1 , y - 2 ] == 0 || board[ x - 1 , y - 2 ] > 10 ) )
                 {
-                    ret.Add( ( x - 1 , y - 2 ) );
+                    if( board[ x , y - 1 ] > -1 && board[ x - 1, y - 1 ] > -1 )
+                    {
+                        ret.Add( ( x - 1 , y - 2 ) );
+                    }
                 }
             }
 
@@ -346,10 +406,15 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x + i < 15 )
                 {
-                    if( board[ x + i, y ] == 0 || board[ x + i, y ] > 10 )
+                    if( board[ x + i, y ] == 0 )
                     {
                         ret.Add( ( x + i, y ) );
                         i++;
+                    }
+                    else if( board[ x + i, y ] > 10 )
+                    {
+                        ret.Add( ( x + i, y ) );
+                        break;
                     }
                     else
                     {
@@ -368,11 +433,16 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x + i < 15 && y + j < 15 )
                 {
-                    if( board[ x + i, y + j ] == 0 || board[ x + i, y + j ] > 10 )
+                    if( board[ x + i, y + j ] == 0 )
                     {
                         ret.Add( ( x + i, y + j ) );
                         i++;
                         j++;
+                    }
+                    else if( board[ x + i, y + j ] > 10 )
+                    {
+                        ret.Add( ( x + i, y + j ) );
+                        break;
                     }
                     else
                     {
@@ -390,10 +460,15 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( y + j < 15 )
                 {
-                    if( board[ x , y + j ] == 0 || board[ x , y + j ] > 10 )
+                    if( board[ x , y + j ] == 0 )
                     {
                         ret.Add( ( x , y + j ) );
                         j++;
+                    }
+                    else if( board[ x , y + j ] > 10 )
+                    {
+                        ret.Add( ( x , y + j ) );
+                        break;
                     }
                     else
                     {
@@ -412,11 +487,16 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x - i >= 0 && y + j < 15 )
                 {
-                    if( board[ x - i, y + j ]  == 0 || board[ x - i, y + j ]  > 10 )
+                    if( board[ x - i, y + j ]  == 0 )
                     {
                         ret.Add( ( x - i, y + j ) );
                         i++;
                         j++;
+                    }
+                    else if( board[ x - i, y + j ]  > 10 )
+                    {
+                        ret.Add( ( x - i, y + j ) );
+                        break;
                     }
                     else
                     {
@@ -434,10 +514,15 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x - i >= 0 )
                 {
-                    if( board[ x - i, y ] == 0 || board[ x - i, y ] > 10 )
+                    if( board[ x - i, y ] == 0 )
                     {
                         ret.Add( ( x - i, y ) );
                         i++;
+                    }
+                    else if( board[ x - i, y ] > 10 )
+                    {
+                        ret.Add( ( x - i, y ) );
+                        break;
                     }
                     else
                     {
@@ -456,11 +541,16 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x - i >= 0 && y - j >= 0 )
                 {
-                    if( board[ x - i, y - j ] == 0 || board[ x - i, y - j ] > 10 )
+                    if( board[ x - i, y - j ] == 0 )
                     {
                         ret.Add( ( x - i, y - j ) );
                         i++;
                         j++;
+                    }
+                    else if( board[ x - i, y - j ] > 10 )
+                    {
+                        ret.Add( ( x - i, y - j ) );
+                        break;
                     }
                     else
                     {
@@ -478,10 +568,15 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( y - j >= 0 )
                 {
-                    if( board[ x , y - j ] == 0 || board[ x , y - j ] > 10 )
+                    if( board[ x , y - j ] == 0 )
                     {
                         ret.Add( ( x , y - j ) );
                         j++;
+                    }
+                    else if( board[ x , y - j ] > 10 )
+                    {
+                        ret.Add( ( x , y - j ) );
+                        break;
                     }
                     else
                     {
@@ -500,11 +595,16 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 if( x + i < 15 && y - j >= 0 )
                 {
-                    if( board[ x + i, y - j ] == 0 || board[ x + i, y - j ] > 10 )
+                    if( board[ x + i, y - j ] == 0 )
                     {
                         ret.Add( ( x + i, y - j ) );
                         i++;
                         j++;
+                    }
+                    else if( board[ x + i, y - j ] > 10 )
+                    {
+                        ret.Add( ( x + i, y - j ) );
+                        break;
                     }
                     else
                     {
@@ -689,7 +789,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         if( yourTurn )
         {
             //ある敵の駒に対して
-            for( int k = 0; k < 9; k++ )
+            for( int k = 0; k < enemy_pieces.Length; k++ )
             {
                 int i = enemy_pieces[k].Position().Item1;
                 int j = enemy_pieces[k].Position().Item2;
@@ -723,8 +823,12 @@ public class GameControl : MonoBehaviourPunCallbacks
                     bool visible = false;
 
                     //ある自分の駒に対して
-                    for( int l = 0; l < 9; l++ )
+                    for( int l = 0; l < pieces.Length; l++ )
                     {
+                        if( !pieces[l].Enable() )
+                        {
+                            continue;
+                        }
                         var S = (float)(pieces[l].Position().Item1 - 7) * 2f;
                         var T = (float)(pieces[l].Position().Item2 - 7) * 2f;
 
@@ -761,8 +865,12 @@ public class GameControl : MonoBehaviourPunCallbacks
             int enemy_id = board[ new_position.Item1, new_position.Item2 ] - 11;
             
             //ある自分の駒に対して
-            for( int k = 0; k < 9; k++ )
+            for( int k = 0; k < pieces.Length; k++ )
             {
+                if( !pieces[k].Enable() )
+                {
+                    continue;
+                }
                 int i = pieces[k].Position().Item1;
                 int j = pieces[k].Position().Item2;
                 var I = (float)( i - 7 ) * 2f;
@@ -887,6 +995,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         Match();
     }
 
+    //プレイヤーが入ってきたら
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         Debug.Log("<color=blue>Other Player Joined Room, players : " + PhotonNetwork.CountOfPlayersInRooms + "</color>");
@@ -894,7 +1003,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         //test
         view.RPC( nameof(TestRPC), RpcTarget.All, view.ViewID );
 
-        //view.RPC( nameof() );
+        PhotonNetwork.CurrentRoom.IsOpen = false;
 
         StartGame( view.ViewID );
     }
