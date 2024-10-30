@@ -8,6 +8,7 @@ using Unity.VisualScripting;
 using System.Data.Common;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.AddressableAssets;
 
 public class GameControl : MonoBehaviourPunCallbacks
 {
@@ -65,6 +66,9 @@ public class GameControl : MonoBehaviourPunCallbacks
     //通信用PhotonView
     PhotonView view;
 
+    //SE再生用
+    private AudioSource audioSource;
+
     //Start時実行
     void Start()
     {
@@ -83,6 +87,8 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         InitializeBoard();
         yourTurn = false;
+
+        audioSource = this.GetComponent<AudioSource>();
 
         // PhotonServerSettingsの設定内容を使ってマスターサーバーへ接続する
         PhotonNetwork.ConnectUsingSettings();
@@ -637,6 +643,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     void MovePiece( (int, int) original, (int, int) destination )
     {
         GameObject obj;
+        string SEname = "SetPiece";
         
         int original_id = board[ (int)original.Item1, (int)original.Item2 ];
         int destination_id = board[ (int)destination.Item1, (int)destination.Item2 ];
@@ -691,13 +698,11 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         UpdateBoard( destination );
         DestroyTemporaries();
+
+        PlaySE(SEname);
         StartCoroutine( DownObject(obj, downDestination, destination) );
     }
 
-    void DownObject(float downDestination)
-    {
-
-    }
     //駒移動アニメーション
     IEnumerator DownObject(GameObject obj, float downDestination, (int, int) destination )
     {
@@ -715,9 +720,30 @@ public class GameControl : MonoBehaviourPunCallbacks
             shown = false;
             installables = new List< (int, int) >();
             
-            //UpdateBoard( destination );
             SwapTurn();
         }
+    }
+
+    //SEを鳴らす
+    void PlaySE(string SEname)
+    {
+        
+        var handle = Addressables.LoadAssetAsync<AudioClip>( SEname );
+
+        handle.Completed += handle => 
+        {
+            if ( handle.Result == null ) 
+            {
+                Debug.Log( "Load Error" );
+                return;
+            }
+        };
+
+        AudioClip SE = handle.WaitForCompletion();
+
+        Debug.Log(SE.name);
+        audioSource.PlayOneShot(SE);
+        Addressables.Release(handle);
     }
 
     //設置可能位置 表示Objectを破壊
@@ -964,8 +990,6 @@ public class GameControl : MonoBehaviourPunCallbacks
         RoomOptions roomOptions = new RoomOptions();
         roomOptions.MaxPlayers = 2;
         PhotonNetwork.CreateRoom(null, roomOptions, null);
-        
-        yourTurn = true;
     }
 
     //マッチングを開始
@@ -1023,7 +1047,6 @@ public class GameControl : MonoBehaviourPunCallbacks
     private void StartGame( int viewID )
     {
         Debug.Log("<color=red>Game Started with your turn!</color>   " + yourTurn);
-        yourTurn = false;
         waiting_overlay.SetActive(false);
         SwapTurn();
     }
