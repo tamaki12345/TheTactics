@@ -1,8 +1,10 @@
-vscode/
+.vscode/
 Library/
 Logs/
 Packages/
-ProjectSettings/
 UserSettings/
+App/
+Assets/TextMeshPro/
+Temp
 *.csproj
 *.sln
