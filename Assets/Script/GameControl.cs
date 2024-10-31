@@ -655,6 +655,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
             if( destination_id > 10 )
             {
+                SEname = "GetPice";
                 enemy_pieces[destination_id - 11].SwapEnable();
 
                 if( enemy_pieces[destination_id-11].Type() == 4 )
@@ -672,6 +673,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
             if( destination_id > 0 )
             {
+                SEname = "GotPice";
                 pieces[destination_id-1].SwapEnable();
                 
                 if( pieces[destination_id-1].Type() == 4 )
@@ -724,26 +726,39 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
     }
 
+
+    //使用SE
+    [SerializeField]
+    private AudioClip SetPieceSE;
+    [SerializeField]
+    private AudioClip GetPieceSE;
+    [SerializeField]
+    private AudioClip GotPieceSE;
+    [SerializeField]
+    private AudioClip GameEndSE;
     //SEを鳴らす
+    AudioClip SE;
     void PlaySE(string SEname)
     {
-        
-        var handle = Addressables.LoadAssetAsync<AudioClip>( SEname );
 
-        handle.Completed += handle => 
+        if( SEname == "SetPiece" )
         {
-            if ( handle.Result == null ) 
-            {
-                Debug.Log( "Load Error" );
-                return;
-            }
-        };
+            SE = SetPieceSE;
+        }
+        else if( SEname == "GetPiece" )
+        {
+            SE = GetPieceSE;
+        }
+        else if( SEname == "GotPiece" )
+        {
+            SE = GotPieceSE;
+        }
+        else if ( SEname == "GameEnd" )
+        {
+            SE = GameEndSE;
+        }
 
-        AudioClip SE = handle.WaitForCompletion();
-
-        Debug.Log(SE.name);
         audioSource.PlayOneShot(SE);
-        Addressables.Release(handle);
     }
 
     //設置可能位置 表示Objectを破壊
@@ -942,7 +957,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     private void Win()
     {
         // 効果音
-        GetComponent<AudioSource>().Play();
+        PlaySE("GameEnd");
         
         waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);
@@ -954,7 +969,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     private void GiveUpWin( int viewID )
     {
         // 効果音
-        GetComponent<AudioSource>().Play();
+        PlaySE("GameEnd");
 
         waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);

@@ -1512,6 +1512,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 963194227}
+  SetPieceSE: {fileID: 8300000, guid: 2d57e97692a9df24f933d502e4775459, type: 3}
+  GetPieceSE: {fileID: 8300000, guid: b39edab65d5cd9a468eae846d08d2fb7, type: 3}
+  GotPieceSE: {fileID: 8300000, guid: c8c8be3fbe96cf34083ad728e40b6674, type: 3}
+  GameEndSE: {fileID: 8300000, guid: 0159c91a4c41e944e9de3defb6c2e91b, type: 3}
 --- !u!82 &915593609
 AudioSource:
   m_ObjectHideFlags: 0
