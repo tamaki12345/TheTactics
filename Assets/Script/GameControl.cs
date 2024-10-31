@@ -107,7 +107,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
                 SendAction(shownPoint, clickPoint);
             }
-            else if( SelectPiece() > 0 && !shown )
+            else if( SelectPiece() > 0 && !shown && SelectPiece() < 10 )
             {
                 shown = true;
                 selected = SelectPiece();
@@ -640,10 +640,11 @@ public class GameControl : MonoBehaviourPunCallbacks
     }
 
     //駒を移動
+    string SEname;
     void MovePiece( (int, int) original, (int, int) destination )
     {
         GameObject obj;
-        string SEname = "SetPiece";
+        SEname = "SetPiece";
         
         int original_id = board[ (int)original.Item1, (int)original.Item2 ];
         int destination_id = board[ (int)destination.Item1, (int)destination.Item2 ];
@@ -653,9 +654,10 @@ public class GameControl : MonoBehaviourPunCallbacks
             obj = pieces[ original_id - 1 ].Object();
             pieces[original_id-1].SetPosition( (int)destination.Item1, (int)destination.Item2 );
 
+            //敵駒をとったら
             if( destination_id > 10 )
             {
-                SEname = "GetPice";
+                SEname = "GetPiece";
                 enemy_pieces[destination_id - 11].SwapEnable();
 
                 if( enemy_pieces[destination_id-11].Type() == 4 )
@@ -671,11 +673,13 @@ public class GameControl : MonoBehaviourPunCallbacks
             obj = enemy_pieces[ original_id - 11 ].Object();
             enemy_pieces[original_id-11].SetPosition( (int)destination.Item1, (int)destination.Item2 );
 
+            //駒を取られたら
             if( destination_id > 0 )
             {
-                SEname = "GotPice";
+                SEname = "GotPiece";
                 pieces[destination_id-1].SwapEnable();
-                
+                Debug.Log( "!! " + pieces[destination_id-1].Position() + "is got  :" + pieces[destination_id-1].Enable() );
+
                 if( pieces[destination_id-1].Type() == 4 )
                 {
                     Lose();
@@ -701,6 +705,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         UpdateBoard( destination );
         DestroyTemporaries();
 
+        Debug.Log(SEname);
         PlaySE(SEname);
         StartCoroutine( DownObject(obj, downDestination, destination) );
     }
@@ -718,6 +723,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
         else
         {
+            Debug.Log("Obj Set Complete");
             moving = false;
             shown = false;
             installables = new List< (int, int) >();
@@ -743,22 +749,22 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         if( SEname == "SetPiece" )
         {
-            SE = SetPieceSE;
+            audioSource.clip = SetPieceSE;
         }
         else if( SEname == "GetPiece" )
         {
-            SE = GetPieceSE;
+            audioSource.clip = GetPieceSE;
         }
         else if( SEname == "GotPiece" )
         {
-            SE = GotPieceSE;
+            audioSource.clip = GotPieceSE;
         }
         else if ( SEname == "GameEnd" )
         {
-            SE = GameEndSE;
+            audioSource.clip = GameEndSE;
         }
 
-        audioSource.PlayOneShot(SE);
+        audioSource.Play();
     }
 
     //設置可能位置 表示Objectを破壊
@@ -824,12 +830,11 @@ public class GameControl : MonoBehaviourPunCallbacks
     //盤面を更新
     void UpdateBoard( (int, int) new_position )
     {
-        var X = (float)(new_position.Item1 - 7) * 2f;
-        var Y = (float)(new_position.Item2 - 7) * 2f;
-
         //自分のターンだったら
         if( yourTurn )
         {
+            var X = (float)(new_position.Item1 - 7) * 2f;
+            var Y = (float)(new_position.Item2 - 7) * 2f;
             //ある敵の駒に対して
             for( int k = 0; k < enemy_pieces.Length; k++ )
             {
@@ -902,33 +907,85 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
 
         //相手のターンだったら
-        else 
+        else
         {
-            int enemy_id = board[ new_position.Item1, new_position.Item2 ] - 11;
-            
-            //ある自分の駒に対して
-            for( int k = 0; k < pieces.Length; k++ )
+            //ある敵の駒に対して
+            for( int k = 0; k < enemy_pieces.Length; k++ )
             {
-                if( !pieces[k].Enable() )
-                {
-                    continue;
-                }
-                int i = pieces[k].Position().Item1;
-                int j = pieces[k].Position().Item2;
+                int i = enemy_pieces[k].Position().Item1;
+                int j = enemy_pieces[k].Position().Item2;
                 var I = (float)( i - 7 ) * 2f;
                 var J = (float)( j - 7 ) * 2f;
 
-                //その駒がとられてなくて，見えていない場合にチェック
-                if( enemy_pieces[ enemy_id ].Enable() && !enemy_pieces[ enemy_id ].Visible() )
+                //その駒がとられてなくて，見えていない場合に見えるかチェック
+                if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == false )
                 {
-                    Vector3 origin = new Vector3( X, 2f, Y );
-                    Vector3 destination = new Vector3( I, 2f, J );
-                    Vector3 ray = destination - origin;
-
-                    //間に壁がなければ
-                    if ( !Physics.Raycast(origin, ray, ray.magnitude ) )
+                    //ある自分の駒から
+                    for( int l = 0; l < pieces.Length; l++ )
                     {
-                        enemy_pieces[ enemy_id ].SwapVisible();
+                        if( !pieces[l].Enable() )
+                        {
+                            continue;
+                        }
+                        var X = (float)(pieces[l].Position().Item1 - 7) * 2f;
+                        var Y = (float)(pieces[l].Position().Item2 - 7) * 2f;
+
+                        Vector3 origin = new Vector3( X, 2f, Y );
+                        Vector3 destination = new Vector3( I, 2f, J );
+                        Vector3 ray = destination - origin;
+
+                        RaycastHit hit;
+
+                        //間に壁がなければ
+                        if ( !Physics.Raycast(origin, ray, out hit,ray.magnitude ) )
+                        {
+                            //Debug.DrawRay(origin, ray, Color.red, 3f, false);
+                            enemy_pieces[k].SwapVisible();
+                        }
+                        else
+                        {
+                            //Debug.DrawRay(origin, hit.point - origin, Color.red, 3f, false);
+                        }
+                    }
+                }
+
+                //その駒がとられてなくて，見えていたらまだ見えるかチェック
+                else if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == true )
+                {
+                    bool visible = false;
+
+                    //ある自分の駒に対して
+                    for( int l = 0; l < pieces.Length; l++ )
+                    {
+                        if( !pieces[l].Enable() )
+                        {
+                            continue;
+                        }
+                        var S = (float)(pieces[l].Position().Item1 - 7) * 2f;
+                        var T = (float)(pieces[l].Position().Item2 - 7) * 2f;
+
+                        Vector3 origin = new Vector3( S, 2f, T );
+                        Vector3 destination = new Vector3( I, 2f, J );
+                        Vector3 ray = destination - origin;
+
+                        RaycastHit hit;
+
+                        //間に壁がなければ
+                        if ( !Physics.Raycast(origin, ray, out hit, ray.magnitude ) )
+                        {
+                            //Debug.DrawRay(origin, ray, Color.blue, 3f, false);
+                            visible = true;
+                        }
+                        else
+                        {
+                            //Debug.DrawRay(origin, hit.point - origin, Color.blue, 3f, false);
+                        }
+                    }
+
+                    //すべての間に壁があったら
+                    if( visible == false )
+                    {
+                        enemy_pieces[k].SwapVisible();
                     }
                 }
             }
