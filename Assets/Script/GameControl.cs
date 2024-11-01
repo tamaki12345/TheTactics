@@ -8,6 +8,7 @@ using Unity.VisualScripting;
 using System.Data.Common;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.Rendering;
 
 public class GameControl : MonoBehaviourPunCallbacks
 {
@@ -68,6 +69,8 @@ public class GameControl : MonoBehaviourPunCallbacks
     //SE再生用
     private AudioSource audioSource;
 
+    private bool RuleIsOn = false;
+
     //Start時実行
     void Start()
     {
@@ -98,7 +101,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     //毎フレーム実行
     void Update()
     {
-        if( GetClickPoint() && !moving && yourTurn )
+        if( GetClickPoint() && !moving && ( yourTurn && !RuleIsOn ) )
         {
             if( installables.Contains( ( clickPoint.Item1 , clickPoint.Item2 ) ) )
             {
@@ -106,7 +109,7 @@ public class GameControl : MonoBehaviourPunCallbacks
 
                 SendAction(shownPoint, clickPoint);
             }
-            else if( SelectPiece() > 0 && !shown && SelectPiece() < 10 )
+            else if( SelectPiece() > 0 && !shown && SelectPiece() < 11 )
             {
                 shown = true;
                 selected = SelectPiece();
@@ -239,7 +242,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     int SelectPiece()
     {
         //クリック位置に駒があるか?
-        if( board[ (int)clickPoint.Item1 ,  (int)clickPoint.Item2 ] > 0 )
+        if( board[ (int)clickPoint.Item1 ,  (int)clickPoint.Item2 ] > 0 && board[ (int)clickPoint.Item1 ,  (int)clickPoint.Item2 ] < 11 )
         {
             return board[ (int)clickPoint.Item1 ,  (int)clickPoint.Item2 ];
         }
@@ -662,6 +665,7 @@ public class GameControl : MonoBehaviourPunCallbacks
                 if( enemy_pieces[destination_id-11].Type() == 4 )
                 {
                     Win();
+                    return;
                 }
             }
 
@@ -677,11 +681,11 @@ public class GameControl : MonoBehaviourPunCallbacks
             {
                 SEname = "GotPiece";
                 pieces[destination_id-1].SwapEnable();
-                Debug.Log( "!! " + pieces[destination_id-1].Position() + "is got  :" + pieces[destination_id-1].Enable() );
 
                 if( pieces[destination_id-1].Type() == 4 )
                 {
                     Lose();
+                    return;
                 }
             }
 
@@ -701,10 +705,10 @@ public class GameControl : MonoBehaviourPunCallbacks
 
         obj.transform.position = destination_position;
 
+        Debug.Log(destination + " : " + board[ (int)destination.Item1, (int)destination.Item2 ]);
         UpdateBoard( destination );
         DestroyTemporaries();
 
-        Debug.Log(SEname);
         PlaySE(SEname);
         StartCoroutine( DownObject(obj, downDestination, destination) );
     }
@@ -722,7 +726,6 @@ public class GameControl : MonoBehaviourPunCallbacks
         }
         else
         {
-            Debug.Log("Obj Set Complete");
             moving = false;
             shown = false;
             installables = new List< (int, int) >();
@@ -797,124 +800,21 @@ public class GameControl : MonoBehaviourPunCallbacks
         MovePiece( modify_ex_pos, modify_new_pos );
     }
 
-    //駒をとった・とられた
-    void GotPiece( (int, int) ex_position, (int, int) new_position  )
-    {
-        int got_piece = board[ new_position.Item1, new_position.Item2 ];
-        board[ new_position.Item1, new_position.Item2 ] = board[ ex_position.Item1, ex_position.Item2 ];
-
-        //自分の駒を取られたら
-        if( got_piece < 10 )
-        {
-            pieces[ got_piece - 1 ].SwapEnable();
-
-            if( pieces[ got_piece - 1 ].Type() == 4 )
-            {
-                Lose();
-            }
-        }
-
-        //相手の駒をとったら
-        else if( got_piece > 10 )
-        {
-            enemy_pieces[ got_piece - 11 ].SwapEnable();
-
-            if( enemy_pieces[ got_piece - 11 ].Type() == 4 )
-            {
-                Win();
-            }
-        }
-    }
-
     //盤面を更新
     void UpdateBoard( (int, int) new_position )
     {
         //自分のターンだったら
         if( yourTurn )
         {
-            var X = (float)(new_position.Item1 - 7) * 2f;
-            var Y = (float)(new_position.Item2 - 7) * 2f;
             //ある敵の駒に対して
-            for( int k = 0; k < enemy_pieces.Length; k++ )
+            for( int k = 0; k < 10; k++ )
             {
                 int i = enemy_pieces[k].Position().Item1;
                 int j = enemy_pieces[k].Position().Item2;
                 var I = (float)( i - 7 ) * 2f;
                 var J = (float)( j - 7 ) * 2f;
 
-                //その駒がとられてなくて，見えていない場合に見えるかチェック
-                if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == false )
-                {
-                    Vector3 origin = new Vector3( X, 2f, Y );
-                    Vector3 destination = new Vector3( I, 2f, J );
-                    Vector3 ray = destination - origin;
-
-                    RaycastHit hit;
-
-                    //間に壁がなければ
-                    if ( !Physics.Raycast(origin, ray, out hit,ray.magnitude ) )
-                    {
-                        //Debug.DrawRay(origin, ray, Color.red, 3f, false);
-                        enemy_pieces[k].SwapVisible();
-                    }
-                    else
-                    {
-                        //Debug.DrawRay(origin, hit.point - origin, Color.red, 3f, false);
-                    }
-                }
-
-                //その駒がとられてなくて，見えていたらまだ見えるかチェック
-                else if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == true )
-                {
-                    bool visible = false;
-
-                    //ある自分の駒に対して
-                    for( int l = 0; l < pieces.Length; l++ )
-                    {
-                        if( !pieces[l].Enable() )
-                        {
-                            continue;
-                        }
-                        var S = (float)(pieces[l].Position().Item1 - 7) * 2f;
-                        var T = (float)(pieces[l].Position().Item2 - 7) * 2f;
-
-                        Vector3 origin = new Vector3( S, 2f, T );
-                        Vector3 destination = new Vector3( I, 2f, J );
-                        Vector3 ray = destination - origin;
-
-                        RaycastHit hit;
-
-                        //間に壁がなければ
-                        if ( !Physics.Raycast(origin, ray, out hit, ray.magnitude ) )
-                        {
-                            //Debug.DrawRay(origin, ray, Color.blue, 3f, false);
-                            visible = true;
-                        }
-                        else
-                        {
-                            //Debug.DrawRay(origin, hit.point - origin, Color.blue, 3f, false);
-                        }
-                    }
-
-                    //すべての間に壁があったら
-                    if( visible == false )
-                    {
-                        enemy_pieces[k].SwapVisible();
-                    }
-                }
-            }
-        }
-
-        //相手のターンだったら
-        else
-        {
-            //ある敵の駒に対して
-            for( int k = 0; k < enemy_pieces.Length; k++ )
-            {
-                int i = enemy_pieces[k].Position().Item1;
-                int j = enemy_pieces[k].Position().Item2;
-                var I = (float)( i - 7 ) * 2f;
-                var J = (float)( j - 7 ) * 2f;
+                if(k==9) Debug.Log( (i,j) );
 
                 //その駒がとられてなくて，見えていない場合に見えるかチェック
                 if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == false )
@@ -938,12 +838,8 @@ public class GameControl : MonoBehaviourPunCallbacks
                         //間に壁がなければ
                         if ( !Physics.Raycast(origin, ray, out hit,ray.magnitude ) )
                         {
-                            //Debug.DrawRay(origin, ray, Color.red, 3f, false);
                             enemy_pieces[k].SwapVisible();
-                        }
-                        else
-                        {
-                            //Debug.DrawRay(origin, hit.point - origin, Color.red, 3f, false);
+                            break;
                         }
                     }
                 }
@@ -972,12 +868,89 @@ public class GameControl : MonoBehaviourPunCallbacks
                         //間に壁がなければ
                         if ( !Physics.Raycast(origin, ray, out hit, ray.magnitude ) )
                         {
-                            //Debug.DrawRay(origin, ray, Color.blue, 3f, false);
                             visible = true;
                         }
-                        else
+                    }
+
+                    //すべての間に壁があったら
+                    if( visible == false )
+                    {
+                        enemy_pieces[k].SwapVisible();
+                    }
+                }
+            }
+        }
+
+        //相手のターンだったら
+        else
+        {
+            //ある敵の駒に対して
+            for( int k = 0; k < enemy_pieces.Length; k++ )
+            {
+                int i = enemy_pieces[k].Position().Item1;
+                int j = enemy_pieces[k].Position().Item2;
+                var I = (float)( i - 7 ) * 2f;
+                var J = (float)( j - 7 ) * 2f;
+
+                if(k==9)
+                {
+                    Debug.Log( (i,j) + " : " + board[i,j]);
+                    Debug.Log( "visible? : " + enemy_pieces[k].Visible() + " , " + "enable? : " + enemy_pieces[k].Enable() );
+                }
+
+                //その駒がとられてなくて，見えていない場合に見えるかチェック
+                if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == false )
+                {
+                    //ある自分の駒から
+                    for( int l = 0; l < pieces.Length; l++ )
+                    {
+                        if( !pieces[l].Enable() )
                         {
-                            //Debug.DrawRay(origin, hit.point - origin, Color.blue, 3f, false);
+                            continue;
+                        }
+                        var X = (float)(pieces[l].Position().Item1 - 7) * 2f;
+                        var Y = (float)(pieces[l].Position().Item2 - 7) * 2f;
+
+                        Vector3 origin = new Vector3( X, 2f, Y );
+                        Vector3 destination = new Vector3( I, 2f, J );
+                        Vector3 ray = destination - origin;
+
+                        RaycastHit hit;
+
+                        //間に壁がなければ
+                        if ( !Physics.Raycast(origin, ray, out hit, ray.magnitude ) )
+                        {
+                            enemy_pieces[k].SwapVisible();
+                            break;
+                        }
+                    }
+                }
+
+                //その駒がとられてなくて，見えていたらまだ見えるかチェック
+                else if( enemy_pieces[k].Enable() == true && enemy_pieces[k].Visible() == true )
+                {
+                    bool visible = false;
+
+                    //ある自分の駒に対して
+                    for( int l = 0; l < pieces.Length; l++ )
+                    {
+                        if( !pieces[l].Enable() )
+                        {
+                            continue;
+                        }
+                        var S = (float)(pieces[l].Position().Item1 - 7) * 2f;
+                        var T = (float)(pieces[l].Position().Item2 - 7) * 2f;
+
+                        Vector3 origin = new Vector3( S, 2f, T );
+                        Vector3 destination = new Vector3( I, 2f, J );
+                        Vector3 ray = destination - origin;
+
+                        RaycastHit hit;
+
+                        //間に壁がなければ
+                        if ( !Physics.Raycast(origin, ray, out hit, ray.magnitude ) )
+                        {
+                            visible = true;
                         }
                     }
 
@@ -1005,7 +978,6 @@ public class GameControl : MonoBehaviourPunCallbacks
             Debug.Log("<color=green>YOUR TURN</color>");
         }
 
-        Debug.Log(yourTurn);
         turn_overlay.SetActive(yourTurn);
     }
 
@@ -1015,6 +987,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         // 効果音
         PlaySE("GameEnd");
         
+        yourTurn = false;
         waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);
         end_overlay.SetActive(true);
@@ -1027,6 +1000,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         // 効果音
         PlaySE("GameEnd");
 
+        yourTurn = false;
         waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);
         end_overlay.SetActive(true);
@@ -1040,6 +1014,7 @@ public class GameControl : MonoBehaviourPunCallbacks
         // 効果音
         GetComponent<AudioSource>().Play();
 
+        yourTurn = false;
         waiting_overlay.SetActive(false);
         turn_overlay.SetActive(false);
         end_overlay.SetActive(true);
@@ -1131,6 +1106,7 @@ public class GameControl : MonoBehaviourPunCallbacks
     //リマッチ
     public void Rematch()
     {
+        PhotonNetwork.LeaveRoom();
         SceneManager.LoadScene("PlayScene", LoadSceneMode.Single);
     }
 
@@ -1140,6 +1116,96 @@ public class GameControl : MonoBehaviourPunCallbacks
         Debug.Log("After Scene is loaded and game is running");
         // スクリーンサイズの指定
         Screen.SetResolution(1920, 1080, false);
+    }
+
+    
+    [SerializeField]
+    private GameObject title;
+    [SerializeField]
+    private GameObject rules;
+    [SerializeField]
+    private GameObject rule1;
+    [SerializeField]
+    private GameObject rule2;
+    [SerializeField]
+    private GameObject rule3;
+
+    private int page = 1;
+
+    public void nextPage()
+    {
+        if( page == 1 )
+        {
+            rule1.SetActive(false);
+            rule2.SetActive(true);
+            page += 1;
+        }
+        else if( page == 2 )
+        {
+            rule2.SetActive(false);
+            rule3.SetActive(true);
+            page += 1;
+        }
+        else if( page == 3 )
+        {
+            rule1.SetActive(true);
+            rule2.SetActive(false);
+            rule3.SetActive(false);
+            rules.SetActive(false);
+            toGame();
+            page = 1;
+        }
+    }
+    
+    public void backPage()
+    {
+        if( page == 1 )
+        {
+            rule1.SetActive(true);
+            rule2.SetActive(false);
+            rule3.SetActive(false);
+            rules.SetActive(false);
+            title.SetActive(true);
+            page = 1;
+        }
+        else if( page == 2 )
+        {
+            rule2.SetActive(false);
+            rule1.SetActive(true);
+            page -= 1;
+        }
+        else if( page == 3 )
+        {
+            rule2.SetActive(true);
+            rule3.SetActive(false);
+            page -= 1;
+        }
+    }
+
+    public void toRules()
+    {
+        if(!RuleIsOn)
+        {
+            RuleIsOn = true;
+            rules.SetActive(true);
+            waiting_overlay.SetActive(false);
+            page = 1;
+
+            moving = false;
+            shown = false;
+            installables = new List< (int, int) >();
+            DestroyTemporaries();
+        }
+    }
+    
+    public void toGame()
+    {
+        RuleIsOn = false;
+        rules.SetActive(false);
+        if( !yourTurn )
+        {
+            waiting_overlay.SetActive(true);
+        }
     }
 //github:tamaki12345
 }
